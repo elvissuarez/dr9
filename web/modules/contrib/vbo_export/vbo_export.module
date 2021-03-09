@@ -1,0 +1,98 @@
+<?php
+
+/**
+ * @file
+ * Delivers an action to export view results to csv.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_theme().
+ */
+function vbo_export_theme() {
+  return [
+    'vbo_export_content_csv' => [
+      'variables' => [
+        'header' => [],
+        'rows' => [],
+        'configuration' => [
+          'separator' => ';',
+          'strip_tags' => TRUE,
+        ],
+      ],
+      'file' => 'includes/vbo_export.theme.inc',
+
+      // I know this is deprecated.
+      // However if I don't set it Drupal looks for a
+      // template and doesn't even think of finding the function.
+      'function' => 'theme_vbo_export_content_csv',
+    ],
+    'vbo_export_content_xlsx' => [
+      'variables' => [
+        'header' => [],
+        'rows' => [],
+        'configuration' => [
+          'strip_tags' => TRUE,
+        ],
+      ],
+      'file' => 'includes/vbo_export.theme.inc',
+
+      // I know this is deprecated.
+      // However if I don't set it Drupal looks for a
+      // template and doesn't even think of finding the function.
+      'function' => 'theme_vbo_export_content_xlsx',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_help().
+ */
+function vbo_export_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.vbo_export':
+      $filepath = dirname(__FILE__) . '/README.md';
+      if (file_exists($filepath)) {
+        $readme = file_get_contents($filepath);
+        $output = '<pre>' . $readme . '</pre>';
+
+        return $output;
+      }
+  }
+}
+
+/**
+ * Library loader function.
+ *
+ * Loads the library if not already available and
+ * optionally checks its version.
+ */
+function _vbo_export_library_exists($classname, $details = FALSE) {
+  static $output;
+  if (!isset($output[$classname])) {
+    $output[$classname] = FALSE;
+
+    // If composer was used to add dependancy, the class should exist,
+    // Otherwise check given path.
+    if (class_exists($classname)) {
+      if ($details) {
+        $reflector = new ReflectionClass($classname);
+        $path = dirname(dirname(dirname($reflector->getFileName())));
+        if (file_exists($path . '/CHANGELOG.md') && $content = file_get_contents($path . '/CHANGELOG.md')) {
+          preg_match('/##\s+\[(\d+\.\d+\.\d+)\]\s+-?\s+\d{4}-\d{2}-\d{2}/', $content, $matches);
+          if (!empty($matches[1])) {
+            $output[$classname] = trim($matches[1]);
+          }
+          else {
+            $output[$classname] = 'undetected';
+          }
+        }
+      }
+      else {
+        $output[$classname] = TRUE;
+      }
+    }
+  }
+  return $output[$classname];
+}

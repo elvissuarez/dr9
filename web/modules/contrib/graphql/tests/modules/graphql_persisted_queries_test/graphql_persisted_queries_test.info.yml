@@ -1,0 +1,13 @@
+type: module
+name: GraphQL Persisted Queries Test
+description: Tests the graphql persisted queries functionality.
+package: Testing
+core_version_requirement: ^8 || ^9
+hidden: TRUE
+dependencies:
+  - graphql:graphql
+
+# Information added by Drupal.org packaging script on 2020-12-11
+version: '8.x-4.0'
+project: 'graphql'
+datestamp: 1607692425

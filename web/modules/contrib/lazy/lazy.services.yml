@@ -1,0 +1,4 @@
+services:
+  lazy:
+    class: Drupal\lazy\Lazy
+    arguments: ['@config.factory', '@path.current', '@path_alias.manager', '@path.matcher', '@request_stack']

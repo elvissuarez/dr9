@@ -1,0 +1,4 @@
+services:
+  transliterate_filenames.sanitize_name:
+    class: Drupal\transliterate_filenames\SanitizeName
+    arguments: ['@transliteration']

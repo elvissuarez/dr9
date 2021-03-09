@@ -1,49 +1,78 @@
-# gitignore template for Drupal 8 projects
-#
-# earlier versions of Drupal are tracked in `community/PHP/`
+# Ignore paths that contain user-generated content.
+sites/*/files
+sites/*/private
+files/*
+.ddev
+.ddev/*
+.vscode
+.vscode/*
 
-# Ignore configuration files that may contain sensitive information
-/sites/*/*settings*.php
-/sites/*/*services*.yml
+# Avoid accidental modification of pantheon.upstream.yml in sites
+# created from this upstream
+pantheon.upstream.yml
 
-# Ignore paths that may contain user-generated content
-/sites/*/files
-/sites/*/public
-/sites/*/private
-/sites/*/files-public
-/sites/*/files-private
+# Pantheon commits a settings.php for environment-specific settings.
+# Place local settings in settings.local.php
+web/sites/*/settings.local.php
 
-# Ignore paths that may contain temporary files
-/sites/*/translations
-/sites/*/tmp
-/sites/*/cache
+# Note that services.local.yml is not loaded by default. If you would like
+# to use this file add the following to your settings.local.php file:
+#   $settings['container_yamls'][] = __DIR__ . '/services.local.yml';
+sites/*/services.local.yml
 
-# Ignore testing related files
-/sites/simpletest
+# ** Only works in OSs that support newer versions of fnmatch (Bash 4+)
+/web/sites/default/**/files
+/web/sites/default/**/private
 
-# Ignore drupal core (if not versioning drupal sources)
-/core
-/modules/README.txt
-/profiles/README.txt
-/sites/README.txt
-/sites/example.sites.php
-/sites/example.settings.local.php
-/sites/development.services.yml
-/themes/README.txt
+# Ignore SimpleTest multi-site environment.
+web/sites/simpletest
+
+# remove vendor path
 /vendor
-/.csslintrc
-/.editorconfig
-/.eslintignore
-/.eslintrc.json
-/.gitattributes
-/.htaccess
-/autoload.php
-/composer.json
-/composer.lock
-/example.gitignore
-/index.php
-/LICENSE.txt
-/README.txt
-/robots.txt
-/update.php
-/web.config
+/vendor/*
+
+# Packages #
+############
+*.7z
+*.dmg
+*.gz
+*.bz2
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+*.tgz
+
+# Logs and databases #
+######################
+*.log
+*.sql
+
+# OS generated files #
+######################
+.DS_Store*
+ehthumbs.db
+
+Thumbs.db
+._*
+
+# Vim generated files #
+######################
+*.un~
+
+# SASS #
+##########
+.sass-cache
+
+# Things in the core directory that Drupal 8 commits in the repository.
+!core/**/*.gz
+
+# PROCOLOMBIA #
+###############
+web/sites/*/settings.php
+web/sites/*/services.yml
+node_modules
+node_modules/*
+*/node_modules/*
+**node_modules

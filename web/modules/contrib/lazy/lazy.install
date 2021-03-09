@@ -1,0 +1,168 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall functions for the Lazy-load module.
+ */
+
+/**
+ * Implements hook_requirements().
+ */
+function lazy_requirements($phase) {
+  if ($phase != 'runtime') {
+    return [];
+  }
+
+  $library = Drupal::service('library.discovery')->getLibraryByName('lazy', 'lazysizes');
+  $library_exists = FALSE;
+
+  foreach ($library['js'] as $js) {
+    if (strpos($js['data'], 'lazysizes.min.js') !== FALSE) {
+      $library_exists = file_exists(DRUPAL_ROOT . '/' . $js['data']);
+    }
+  }
+
+  return [
+    'lazy_lazysizes' => [
+      'title' => t('Lazysizes library'),
+      'value' => $library_exists ? $library['version'] : t('Not installed'),
+      'description' => $library_exists ? '' : t('The Lazysizes library needs to be <a href="@url">downloaded</a> and extracted into the /libraries/lazysizes folder in your Drupal installation directory.', ['@url' => 'https://github.com/aFarkas/lazysizes/archive/5.1.1.zip']),
+      'severity' => $library_exists ? REQUIREMENT_OK : REQUIREMENT_ERROR,
+    ],
+  ];
+}
+
+/**
+ * Implements hook_install().
+ */
+function lazy_install() {
+  lazy__update_migrate_config();
+}
+
+/**
+ * Reset "disabled_paths" configuration to module default.
+ */
+function lazy_update_8201() {
+  $config = \Drupal::service('config.factory')->getEditable('lazy.settings');
+
+  if ($config->get('disabled_paths') === NULL) {
+    $config->set('disabled_paths', '/rss.xml');
+    return t('The new "disabled_paths" configuration is set to "/rss.xml" (default value).');
+  }
+
+  return NULL;
+}
+
+/**
+ * Reset "image_fields" configuration to module default.
+ */
+function lazy_update_8202() {
+  $config = \Drupal::service('config.factory')->getEditable('lazy.settings');
+  if ($config->get('image_fields') === TRUE) {
+    $config->set('image_fields', FALSE);
+    return t('<b>Action needed:</b> As of 8.x-2.x, image fields are now controlled individually. You need to manually update each image field to enable lazy-loading.');
+  }
+
+  return NULL;
+}
+
+/**
+ * Migrate lazy configuration.
+ */
+function lazy_update_8301() {
+  lazy__update_migrate_config();
+}
+
+/**
+ * Upgrade and migrate lazy configuration.
+ */
+function lazy__update_migrate_config() {
+  $config = \Drupal::configFactory()->getEditable('lazy.settings');
+
+  // Add defaults for the new lazysizes library.
+  if (empty($config->get('lazysizes'))) {
+    $lazysizes = [
+      'lazyClass' => 'lazyload',
+      'loadedClass' => 'lazyloaded',
+      'loadingClass' => 'lazyloading',
+      'preloadClass' => 'lazypreload',
+      'errorClass' => 'lazyerror',
+      'autosizesClass' => 'lazyautosizes',
+      'srcAttr' => 'data-src',
+      'srcsetAttr' => 'data-srcset',
+      'sizesAttr' => 'data-sizes',
+      'minSize' => 40,
+      'customMedia' => [],
+      'init' => TRUE,
+      'expFactor' => 1.5,
+      'hFac' => 0.8,
+      'loadMode' => 2,
+      'loadHidden' => TRUE,
+      'ricTimeout' => 0,
+      'throttleDelay' => 125,
+      'plugins' => [],
+    ];
+    $config->set('lazysizes', $lazysizes);
+  }
+
+  // Migrate legacy configuration.
+  $selector = $config->get('selector') ?: $config->get('lazysizes.lazyClass');
+  $errorClass = $config->get('errorClass') ?: $config->get('lazysizes.errorClass');
+  $src = $config->get('src') ?: $config->get('lazysizes.srcAttr');
+  $image_fields = $config->get('image_fields');
+
+  $image_fields_updated = [];
+  foreach ($image_fields as $image_field => $bool) {
+    $parts = explode('--', $image_field);
+    $key = implode('--', [$parts[0], $parts[1], $parts[3], $parts[2]]);
+    $image_fields_updated[$key] = TRUE;
+  }
+
+  $alter_tag = $config->get('alter_tag');
+  foreach ($alter_tag as $key => $value) {
+    $alter_tag[$key] = (string) $value;
+  }
+
+  $formatters = $config->get('formatters') ?: [];
+  foreach ($formatters as $key => $value) {
+    $formatters[$key] = (string) $value;
+  }
+
+  $config
+    ->set('lazysizes.lazyClass', $selector)
+    ->set('lazysizes.errorClass', $errorClass)
+    ->set('lazysizes.srcAttr', $src)
+    ->set('image_fields', $image_fields_updated)
+    ->set('alter_tag', $alter_tag)
+    ->set('formatters', $formatters)
+    ->clear('errorClass')
+    ->clear('loadInvisible')
+    ->clear('offset')
+    ->clear('saveViewportOffsetDelay')
+    ->clear('selector')
+    ->clear('src')
+    ->clear('successClass')
+    ->clear('validateDelay')
+    ->save(TRUE);
+}
+
+/**
+ * Update lazy module configuration.
+ */
+function lazy_update_8302() {
+  $config = \Drupal::configFactory()->getEditable('lazy.settings');
+  $config->set('preferNative', TRUE)->save();
+}
+
+/**
+ * Update lazy module configuration for the new "preferNative" option.
+ */
+function lazy_update_8303() {
+  $config = \Drupal::configFactory()->getEditable('lazy.settings');
+  $preferNative = (bool) (($config->get('preferNative') !== NULL) ? $config->get('preferNative') : TRUE);
+  $config->set('preferNative', $preferNative)->save(TRUE);
+
+  return t('The new "preferNative" option is added, and set to %status.', [
+    '%status' => $preferNative ? 'enabled' : 'disabled',
+  ]);
+}

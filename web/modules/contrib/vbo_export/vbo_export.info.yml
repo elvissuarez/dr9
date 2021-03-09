@@ -1,0 +1,12 @@
+type: module
+name: 'VBO Export'
+description: 'Adds export actions to nodes.'
+package: 'Views Bulk Operations'
+core_version_requirement: ^8 || ^9
+dependencies:
+  - views_bulk_operations:views_bulk_operations (>=3.5)
+
+# Information added by Drupal.org packaging script on 2020-08-13
+version: '8.x-3.2'
+project: 'vbo_export'
+datestamp: 1597330828

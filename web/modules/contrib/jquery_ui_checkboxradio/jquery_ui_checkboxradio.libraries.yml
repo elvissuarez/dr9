@@ -1,0 +1,16 @@
+checkboxradio:
+  version: 1.12.1
+  license:
+    name: Public Domain
+    url: https://github.com/jquery/jquery-ui/blob/1.12.1/LICENSE.txt
+    gpl-compatible: true
+  js:
+    jquery.ui/ui/form-reset-mixin-min.js: { minified: true }
+    jquery.ui/ui/widgets/checkboxradio-min.js: { minified: true }
+  css:
+    component:
+      jquery.ui/themes/base/checkboxradio.css: {}
+      jquery.ui/themes/base/button.css: {}
+  dependencies:
+    - jquery_ui/core
+    - jquery_ui/widget

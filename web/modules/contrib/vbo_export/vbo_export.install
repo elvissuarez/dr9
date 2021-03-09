@@ -1,0 +1,31 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the vbo_export module.
+ */
+
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+
+/**
+ * Implements hook_requirements().
+ */
+function vbo_export_requirements($phase) {
+  $requirements = [];
+
+  if ($phase == 'runtime') {
+    $requirements['PhpSpreadsheet'] = [
+      'title' => t('PhpSpreadsheet library'),
+    ];
+    if ($version = _vbo_export_library_exists(Spreadsheet::class, TRUE)) {
+      $requirements['PhpSpreadsheet']['description'] = t('Installed version: @version.', ['@version' => $version]);
+      $requirements['PhpSpreadsheet']['severity'] = REQUIREMENT_OK;
+    }
+    else {
+      $requirements['PhpSpreadsheet']['description'] = t('PhpSpreadsheet library is missing. To properly use export to xlsx operation, please use composer: `composer require phpoffice/phpspreadsheet`.');
+      $requirements['PHPExcel']['severity'] = REQUIREMENT_WARNING;
+    }
+  }
+
+  return $requirements;
+}

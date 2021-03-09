@@ -1,0 +1,9 @@
+{
+    "name": "drupal/pager_metadata",
+    "type": "drupal-module",
+    "description": "Add SEO metadata for pages that contain a pager",
+    "license": "GPL-2.0-or-later",
+    "require-dev": {
+        "vijaycs85/drupal-quality-checker": "^1.3"
+    }
+}

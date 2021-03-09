@@ -1,0 +1,53 @@
+<?php
+
+/**
+ * @file
+ * Contains transliterate_filenames.module.
+ */
+
+use Drupal\file\FileInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function transliterate_filenames_help($route_name, RouteMatchInterface $route_match) {
+  return '';
+}
+
+/**
+ * Implements hook_file_validate().
+ */
+function transliterate_filenames_file_validate(FileInterface $file) {
+  $basename = \Drupal::service('file_system')->basename($file->destination);
+  $basename = transliterate_filenames_transliteration($basename);
+  $dirname = \Drupal::service('file_system')->dirname($file->destination);
+  // @todo The file_create_filename() procedural function is deprecated in
+  //   drupal:8.7.0 and above. Remove this workaround when we bump to 8.7.
+  if (function_exists('file_create_filename')) {
+    $file->destination = file_create_filename($basename, $dirname);
+  }
+  else {
+    $file->destination = \Drupal::service('file_system')->createFilename($basename, $dirname);
+  }
+}
+
+/**
+ * Implements callback for hook_file_validate().
+ */
+function transliterate_filenames_transliteration($filename) {
+  $filename = \Drupal::service('transliterate_filenames.sanitize_name')->sanitizeFilename($filename);
+
+  // For empty.
+  $name = explode('.', $filename);
+  $name = reset($name);
+  $extension = explode(".", $filename);
+  $extension = end($extension);
+
+  // Is empty.
+  if (!$name) {
+    $filename = md5(rand()) . '.' . $extension;
+  }
+
+  return $filename;
+}

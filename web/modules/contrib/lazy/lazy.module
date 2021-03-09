@@ -1,0 +1,392 @@
+<?php
+
+/**
+ * @file
+ * Module file for Lazy-load.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Field\FormatterInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Url;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\image\Entity\ImageStyle;
+use Drupal\file\Entity\File;
+
+/**
+ * Implements hook_help().
+ */
+function lazy_help($route_name) {
+  switch ($route_name) {
+    case 'help.page.lazy':
+      $readme = file_get_contents(__DIR__ . '/README.md');
+
+      if (\Drupal::moduleHandler()->moduleExists('markdown')) {
+        // Use the Markdown filter to render the README.
+        $filter_manager = \Drupal::service('plugin.manager.filter');
+        $settings = \Drupal::configFactory()->get('markdown.settings')->getRawData();
+        $config = ['settings' => $settings];
+        $filter = $filter_manager->createInstance('markdown', $config);
+        return $filter->process($readme, 'en');
+      }
+
+      return '<pre>' . $readme . '</pre>';
+  }
+
+  return NULL;
+}
+
+/**
+ * Returns supported field-types.
+ *
+ * @return array
+ *   Returns a list of field formatters that supports lazy-loading.
+ *
+ * @deprecated in lazy:8.x-3.0 and is removed from lazy:8.x-3.1.
+ *   Use lazy_field_formatters() instead.
+ *
+ * @see https://www.drupal.org/node/3087642
+ */
+function lazy_field_types() {
+  @trigger_error('lazy_field_types() is deprecated in lazy:8.x-3.0 and is removed from lazy:8.x-3.1. Use lazy_field_formatters() instead. See https://www.drupal.org/node/3087642', E_USER_DEPRECATED);
+  return lazy_field_formatters();
+}
+
+/**
+ * Supported field formatters that Lazy-load can be enabled.
+ *
+ * Other modules can override this list of the field formatters via a
+ * `hook_lazy_field_formatters_alter(&$formatters)`  hook.
+ *
+ * @return array
+ *   Returns a list of field formatters that supports lazy-loading.
+ */
+function lazy_field_formatters() {
+  $formatters = [];
+
+  $moduleHandler = \Drupal::moduleHandler();
+  if ($moduleHandler->moduleExists('colorbox')) {
+    $formatters[] = 'colorbox';
+  }
+  if ($moduleHandler->moduleExists('image')) {
+    $formatters[] = 'image';
+  }
+  if ($moduleHandler->moduleExists('media')) {
+    $formatters[] = 'media_thumbnail';
+  }
+  if ($moduleHandler->moduleExists('responsive_image')) {
+    $formatters[] = 'responsive_image';
+  }
+
+  \Drupal::service('module_handler')->alter('lazy_field_formatters', $formatters);
+  $formatters = array_values(array_unique($formatters));
+
+  return $formatters;
+}
+
+/**
+ * Implements hook_field_formatter_third_party_settings_form().
+ */
+function lazy_field_formatter_third_party_settings_form(FormatterInterface $plugin, FieldDefinitionInterface $field_definition, $view_mode, array $form, FormStateInterface $form_state) {
+  $element = [];
+
+  if (in_array($plugin->getPluginId(), lazy_field_formatters(), TRUE)) {
+    $default_value = $plugin->getThirdPartySetting('lazy', 'lazy_image', FALSE);
+    $image_fields = \Drupal::config('lazy.settings')->get('image_fields');
+    $image_fields = is_array($image_fields) ? $image_fields : [];
+    $key = '';
+
+    if ($field_definition instanceof FieldConfig) {
+      $key = str_replace('.', '--', $field_definition->id() . '.' . $view_mode);
+    }
+    elseif ($field_definition instanceof BaseFieldDefinition) {
+      $entity_type = $form['#entity_type'];
+      $bundle = $form['#bundle'];
+
+      $key = "${entity_type}--${bundle}--field_media_image--${view_mode}";
+    }
+
+    if (!isset($image_fields[$key]) || (isset($image_fields[$key]) && ($default_value !== $image_fields[$key]))) {
+      $image_fields[$key] = (bool) $default_value;
+      // Remove fields if lazy is disabled.
+      if (!$image_fields[$key]) {
+        unset($image_fields[$key]);
+      }
+
+      $config = \Drupal::configFactory()->getEditable('lazy.settings');
+      $config->set('image_fields', $image_fields)->save();
+    }
+
+    $element['lazy_image'] = [
+      '#type' => 'checkbox',
+      '#title' => t('Enable lazy-loading'),
+      '#default_value' => $default_value,
+    ];
+    $element['placeholder_style'] = [
+      '#title' => t('Placeholder image style'),
+      '#description' => t('When an image style is selected it would be used to generate the placeholder image. Otherwise the <a href=":url">shared settings</a> apply.', [
+        ':url' => Url::fromRoute('lazy.config_form')->toString(),
+      ]),
+      '#type' => 'select',
+      '#default_value' => $plugin->getThirdPartySetting('lazy', 'placeholder_style', ''),
+      '#options' => image_style_options(),
+      '#states' => [
+        'visible' => [
+          ':input[name*="[settings_edit_form][third_party_settings][lazy][lazy_image]"]' => ['checked' => TRUE],
+        ],
+      ],
+    ];
+    $element['data_uri'] = [
+      '#type' => 'checkbox',
+      '#title' => t('Use data URIs for the placeholder image'),
+      '#description' => t('When checked, the content of the linked image is embedded into the HTML. i.e. <code>data:image/gif;base64,R0lGODdhAQABAPAAAP8A...</code><br>See <a href=":url">Can I use "Data URIs"?</a>', [
+        ':url' => 'https://caniuse.com/#feat=datauri',
+      ]),
+      '#default_value' => $plugin->getThirdPartySetting('lazy', 'data_uri', 0),
+      '#states' => [
+        'visible' => [
+          [
+            ':input[name*="[settings_edit_form][third_party_settings][lazy][lazy_image]"]' => ['checked' => TRUE],
+          ],
+        ],
+        'invisible' => [
+          [
+            ':input[name*="[settings_edit_form][third_party_settings][lazy][placeholder_style]"]' => ['value' => ''],
+          ],
+        ],
+      ],
+    ];
+  }
+
+  return $element;
+}
+
+/**
+ * Implements hook_field_formatter_settings_summary_alter().
+ */
+function lazy_field_formatter_settings_summary_alter(&$summary, $context) {
+  if (
+    in_array($context['formatter']->getPluginId(), lazy_field_formatters(), TRUE)
+    && $context['formatter']->getThirdPartySetting('lazy', 'lazy_image', FALSE)
+  ) {
+    $summary[] = t('Lazy-loading enabled');
+
+    if ($context['formatter']->getThirdPartySetting('lazy', 'placeholder_style', FALSE)) {
+      $image_style = \Drupal::entityTypeManager()->getStorage('image_style')->load($context['formatter']->getThirdPartySetting('lazy', 'placeholder_style', FALSE));
+      $summary[] = t('Lazy placeholder image style: @name.', ['@name' => $image_style->label()]);
+
+      if ($context['formatter']->getThirdPartySetting('lazy', 'data_uri', FALSE)) {
+        $summary[] = t('Lazy placeholder image is embedded via data URI.');
+      }
+    }
+  }
+}
+
+/**
+ * Implements template_preprocess_field().
+ */
+function lazy_preprocess_field(&$variables) {
+  $element = $variables['element'];
+  if (!empty($element['#third_party_settings']) && !empty($element['#third_party_settings']['lazy']['lazy_image'])) {
+    foreach ($variables['items'] as $key => $item) {
+      $variables['items'][$key]['content']['#item_attributes']['data-lazy'] = TRUE;
+      $variables['items'][$key]['content']['#item_attributes']['data-lazy-fid'] = $element[$key]['#item']->getValue()['target_id'];
+      if (!empty($element['#third_party_settings']['lazy']['placeholder_style'])) {
+        $variables['items'][$key]['content']['#item_attributes']['data-lazy-placeholder-style'] = $element['#third_party_settings']['lazy']['placeholder_style'];
+      }
+      if (!empty($element['#third_party_settings']['lazy']['data_uri'])) {
+        $variables['items'][$key]['content']['#item_attributes']['data-lazy-data-uri'] = $element['#third_party_settings']['lazy']['data_uri'];
+      }
+    }
+  }
+}
+
+/**
+ * Implements template_preprocess_image().
+ */
+function lazy_preprocess_image(&$variables) {
+  if (array_key_exists('data-lazy', $variables['attributes'])) {
+    // We don't need `data-lazy` attribute anymore.
+    unset($variables['attributes']['data-lazy']);
+    $config = \Drupal::config('lazy.settings')->get();
+    if ($config && \Drupal::service('lazy')->isPathAllowed($config['disabled_paths'])) {
+      // Required attribute for enabling native lazy-loading.
+      $variables['attributes']['loading'] = 'lazy';
+      // Set the selector class.
+      $variables['attributes']['class'][] = $config['lazysizes']['lazyClass'];
+      // Set the new `src` attribute.
+      $variables['attributes'][$config['lazysizes']['srcAttr']] = $variables['attributes']['src'];
+      // Placeholder variables.
+      $image_file_id = $variables['attributes']['data-lazy-fid'] ?? 0;
+      $placeholder_style = $variables['attributes']['data-lazy-placeholder-style'] ?? FALSE;
+      $placeholder_data_uri = $variables['attributes']['data-lazy-data-uri'] ?? FALSE;
+      unset(
+        $variables['attributes']['data-lazy-fid'],
+        $variables['attributes']['data-lazy-placeholder-style'],
+        $variables['attributes']['data-lazy-data-uri']
+      );
+
+      if ($placeholder_style && ($image_file_id > 0)) {
+        /** @var \Drupal\file\Entity\File $file */
+        $file = File::load($image_file_id);
+
+        /** @var \Drupal\image\Entity\ImageStyle $style */
+        $style = ImageStyle::load($placeholder_style);
+
+        // Build the derivative image URL.
+        $placeholder_image_url = $style->buildUrl($file->getFileUri());
+        // Serve as a data URI?
+        if ($placeholder_data_uri) {
+          // Get the mime-type of the original image as fallback.
+          $mime_type = $file->getMimeType();
+          // Requesting the URL will cause the image to be created.
+          $content = file_get_contents($placeholder_image_url);
+          // Get the Content-Type header to extract the correct mime-type.
+          foreach ($http_response_header as $response_header) {
+            if (strpos($response_header, 'Content-Type') === 0) {
+              $content_type = str_replace('Content-Type: ', '', $response_header);
+              $content_type = explode(';', $content_type);
+              $mime_type = trim($content_type[0]);
+            }
+          }
+          // Build the data URI with matching mime-type.
+          $placeholder_image_url = "data:${mime_type};base64," . base64_encode($content);
+        }
+        $variables['attributes']['src'] = $placeholder_image_url;
+      }
+      elseif ($config['placeholderSrc']) {
+        $variables['attributes']['src'] = $config['placeholderSrc'];
+      }
+      else {
+        unset($variables['attributes']['src']);
+      }
+
+      // Set the new `srcset` attribute.
+      if (isset($variables['attributes']['srcset'])) {
+        $variables['attributes'][$config['lazysizes']['srcsetAttr']] = $variables['attributes']['srcset'];
+        unset($variables['attributes']['srcset']);
+      }
+      // Set the new `sizes` attribute.
+      if (isset($variables['attributes']['sizes'])) {
+        $variables['attributes'][$config['lazysizes']['sizesAttr']] = $variables['attributes']['sizes'];
+        unset($variables['attributes']['sizes']);
+      }
+    }
+  }
+}
+
+/**
+ * Implements template_preprocess_responsive_image().
+ */
+function lazy_preprocess_responsive_image(&$variables) {
+  if (array_key_exists('data-lazy', $variables['attributes'])) {
+    // The `data-lazy` attribute will be removed in `lazy_preprocess_image()`.
+    $config = \Drupal::config('lazy.settings')->get();
+    if ($config && \Drupal::service('lazy')->isPathAllowed($config['disabled_paths'])) {
+      foreach ($variables['sources'] as $source) {
+        if (isset($source['srcset'])) {
+          $source[$config['lazysizes']['srcsetAttr']] = $source['srcset'];
+          unset($source['srcset']);
+        }
+        if (isset($source['sizes'])) {
+          $source[$config['lazysizes']['sizesAttr']] = $source['sizes'];
+          unset($source['sizes']);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_page_attachments().
+ */
+function lazy_page_attachments(array &$attachments) {
+  $config = \Drupal::config('lazy.settings')->get();
+  $lazy = \Drupal::service('lazy');
+  if ($config && $lazy->isPathAllowed($config['disabled_paths'])) {
+    $plugins = $lazy->getPlugins();
+    $config['lazysizes']['plugins'] = array_intersect_key($plugins, $config['lazysizes']['plugins']);
+    $options = [
+      'lazysizes' => $config['lazysizes'],
+      'placeholderSrc' => $config['placeholderSrc'],
+      'preferNative' => $config['preferNative'],
+    ];
+    $attachments['#attached']['drupalSettings']['lazy'] = $options;
+    $attachments['#attached']['library'][] = 'lazy/lazy';
+
+    $lazyloaded = $config['lazysizes']['loadedClass'];
+    $lazyloading = $config['lazysizes']['loadingClass'];
+    $lazyclass = $config['lazysizes']['lazyClass'];
+    $sizes = $config['lazysizes']['sizesAttr'];
+    $cssEffect = '';
+    if ((bool) ($config['cssEffect'] ?? FALSE)) {
+      $cssEffect = '/* Transition effect. */' .
+        ".js .${lazyclass}, .js .${$lazyloading} { opacity: 0; }" .
+        ".js .${lazyloaded} { opacity: 1; -webkit-transition: opacity 2000ms; transition: opacity 2000ms; }";
+    }
+    $attachments['#attached']['html_head'][] = [
+      [
+        '#type' => 'html_tag',
+        '#tag' => 'style',
+        '#value' => '/* @see https://github.com/aFarkas/lazysizes#broken-image-symbol */' .
+        ".js img.${lazyclass}:not([src]) { visibility: hidden; }" .
+        '/* @see https://github.com/aFarkas/lazysizes#automatically-setting-the-sizes-attribute */' .
+        ".js img.${lazyloaded}[${sizes}=auto] { display: block; width: 100%; }" .
+        $cssEffect,
+      ],
+      'lazy-lazysizes',
+    ];
+    $attachments['#cache']['tags'][] = 'config:lazy.settings';
+  }
+}
+
+/**
+ * Callback function to check whether lazy is enabled in any text-formats.
+ *
+ * @return array|false
+ *   Returns lazy configuration array if enabled, false otherwise.
+ *
+ * @deprecated in lazy:8.x-3.0 and is removed from lazy:8.x-3.1.
+ *   Use \Drupal::service('lazy')->isEnabled() instead.
+ *
+ * @see https://www.drupal.org/node/3087640
+ */
+function lazy_is_enabled() {
+  @trigger_error("lazy_is_enabled() is deprecated in lazy:8.x-3.0 and is removed from lazy:8.x-3.1. Use \Drupal::service('lazy')->isEnabled(); instead. See https://www.drupal.org/node/3087640", E_USER_DEPRECATED);
+  return \Drupal::service('lazy')->isEnabled();
+}
+
+/**
+ * Checks whether lazy-load is disabled for the current path.
+ *
+ * @param string $disabled_paths
+ *   List of paths whether Lazy should be enabled.
+ *
+ * @return bool
+ *   Whether Lazy is allowed for the requested path.
+ *
+ * @deprecated in lazy:8.x-3.0 and is removed from lazy:8.x-3.1.
+ *   Use \Drupal::service('lazy')->isPathAllowed($disabled_paths) instead.
+ *
+ * @see https://www.drupal.org/node/3087638
+ */
+function lazy_disabled_by_path($disabled_paths) {
+  @trigger_error('lazy_disabled_by_path() is deprecated in lazy:8.x-3.0 and is removed from lazy:8.x-3.1. Use \Drupal::service("lazy")->isPathAllowed($disabled_paths); instead. See https://www.drupal.org/node/3087638', E_USER_DEPRECATED);
+  return \Drupal::service('lazy')->isPathAllowed($disabled_paths);
+}
+
+/**
+ * Implements hook_field_formatter_info_alter().
+ */
+function lazy_field_formatter_info_alter(array &$info) {
+  $formatters = \Drupal::config('lazy.settings')->get('formatters');
+
+  if (isset($info['lazy_image']) && (empty($formatters['lazy_image']) || !\Drupal::moduleHandler()->moduleExists('image'))) {
+    unset($info['lazy_image']);
+  }
+
+  if (isset($info['lazy_responsive_image']) && (empty($formatters['lazy_responsive_image']) || !\Drupal::moduleHandler()->moduleExists('responsive_image'))) {
+    unset($info['lazy_responsive_image']);
+  }
+}
