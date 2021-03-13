@@ -1,0 +1,18 @@
+block.settings.footermap_block:
+  type: block_settings
+  label: 'Footermap block configuration'
+  mapping:
+    footermap_recurse_limit:
+      type: integer
+      label: 'Recurse limit'
+    footermap_display_heading:
+      type: boolean
+      label: 'Display heading'
+    footermap_top_menu:
+      type: string
+      label: 'Top-level menu'
+    footermap_avail_menus:
+      type: sequence
+      label: 'Available menus'
+      sequence:
+        type: string

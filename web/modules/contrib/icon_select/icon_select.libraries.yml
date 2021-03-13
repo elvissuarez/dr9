@@ -1,0 +1,17 @@
+drupal.icon_select_backend:
+  version: VERSION
+  js:
+    js/icon_select_backend.js: {}
+  css:
+    theme:
+      css/icon_select.css: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+
+drupal.icon_select_frontend:
+  version: VERSION
+  js:
+    js/icon_select_frontend.js: {}
+  dependencies:
+    - core/drupalSettings

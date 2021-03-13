@@ -1,0 +1,5 @@
+services:
+  icon_select.commands:
+    class: \Drupal\icon_select\Commands\IconSelectCommands
+    tags:
+      - { name: drush.command }

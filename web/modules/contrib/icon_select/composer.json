@@ -1,0 +1,10 @@
+{
+    "name": "drupal/icon_select",
+    "description": "Icon selector",
+    "type": "drupal-module",
+    "license": "GPL-2.0+",
+    "require": {
+        "drupal/hook_post_action": "^1.0@beta",
+        "enshrined/svg-sanitize": ">=0.9 <1.0"
+    }
+}

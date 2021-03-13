@@ -1,0 +1,19 @@
+form:
+  version: VERSION
+  css:
+    theme:
+      css/promotion.form.css: {}
+
+admin_list:
+  version: VERSION
+  css:
+    theme:
+      css/commerce_promotion.admin_list.css: {}
+
+coupon_redemption_form:
+  version: VERSION
+  js:
+    js/commerce_promotion.coupon_redemption_form.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal

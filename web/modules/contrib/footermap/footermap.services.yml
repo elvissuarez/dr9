@@ -1,0 +1,6 @@
+services:
+  footermap.anonymous_user:
+    class: Drupal\Core\Session\AnonymousUserSession
+  footermap.anonymous_tree_manipulator:
+    class: Drupal\footermap\Menu\AnonymousMenuLinkTreeManipulator
+    arguments: ['@access_manager', '@footermap.anonymous_user', '@entity_type.manager']

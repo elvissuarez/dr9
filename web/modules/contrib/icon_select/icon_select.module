@@ -1,0 +1,152 @@
+<?php
+
+/**
+ * @file
+ * Basic module file for icon_select module.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\icon_select\Helper\SvgSpriteGenerator;
+use Drupal\taxonomy\Entity\Term;
+
+/**
+ * Implements hook_theme().
+ */
+function icon_select_theme() {
+  return [
+    'icon_select_svg_icon' => [
+      'variables' => [
+        'attributes' => NULL,
+        'symbol_id' => NULL,
+      ],
+    ],
+  ];
+}
+
+/**
+ * Implements theme_preprocess_icon_select_svg_icon.
+ */
+function icon_select_preprocess_icon_select_svg_icon(&$variables) {
+  $variables['#attached']['library'][] = 'icon_select/drupal.icon_select_frontend';
+
+  if (!\Drupal::currentUser()->isAnonymous()) {
+    $variables['#attached']['library'][] = 'icon_select/drupal.icon_select_backend';
+  }
+}
+
+/**
+ * Implements hook_preprocess_page().
+ */
+function icon_select_preprocess_page(&$vars) {
+  $svg_path = SvgSpriteGenerator::getSpriteDestinationPath();
+
+  if (file_exists($svg_path)) {
+    // Add a random string to disable caching of AJAX request.
+    $full_url = file_url_transform_relative(file_create_url(SvgSpriteGenerator::getSpriteDestinationPath()));
+    $url = $full_url . '?hash=' . \Drupal::state()->get('icon_select_hash');
+    $vars['#attached']['drupalSettings']['icon_select']['icon_select_url'] = $url;
+  }
+}
+
+/**
+ * Implements hook_field_widget_form_alter().
+ */
+function icon_select_field_widget_form_alter(&$element, FormStateInterface $form_state, $context) {
+  if (get_class($context['widget']) === 'Drupal\icon_select\Plugin\Field\FieldWidget\IconSelectFieldWidgetDefault') {
+    $element['target_id']['#process'][] = [
+      'Drupal\icon_select\Plugin\Field\FieldWidget\IconSelectFieldWidgetDefault',
+      'processCheckboxes',
+    ];
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function icon_select_form_taxonomy_vocabulary_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  $vid = 'icons';
+  $vocabulary = $form_state->getFormObject()->getEntity();
+  $config = \Drupal::config('icon_select.settings');
+
+  if ($vid == $vocabulary->id()) {
+    $form['path'] = [
+      '#type' => 'textfield',
+      '#title' => t('Path of SVG sprite file'),
+      '#default_value' => !empty($config->get('path')) ? $config->get('path') : 'icons/icon_select_map.svg',
+      '#description' => t('Relative to the files folder'),
+      '#weight' => 0,
+    ];
+
+    // Do not allow to delete forum's vocabulary.
+    $form['actions']['delete']['#access'] = FALSE;
+    // Do not allow to change a vid of forum's vocabulary.
+    $form['vid']['#disabled'] = TRUE;
+
+    $form['actions']['submit']['#submit'][] = 'icon_select_vocabulary_form_submit';
+  }
+}
+
+/**
+ * Custom submit handler for updating / saving icon vocabulary.
+ */
+function icon_select_vocabulary_form_submit(&$form, FormStateInterface $form_state) {
+
+  $config = \Drupal::service('config.factory')->getEditable('icon_select.settings');
+  $path = $form_state->getValue('path');
+  // Set and save new path value.
+  $config->set('path', $path)->save();
+
+  // Update sprites.
+  SvgSpriteGenerator::generateSprites('icons');
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function icon_select_form_taxonomy_term_icons_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  // Custom validation.
+  $form['#validate'][] = 'icon_select_taxonomy_form_validate';
+}
+
+/**
+ * Form validation for taxonomy term save.
+ */
+function icon_select_taxonomy_form_validate(&$form, FormStateInterface $form_state) {
+  $vocabulary_id = $form_state->getFormObject()->getEntity()->get('vid')->target_id;
+  /** @var \Drupal\taxonomy\TermStorageInterface $term_storage */
+  $term_storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+  $terms = $term_storage->loadTree($vocabulary_id, 0, NULL, TRUE);
+
+  $symbol_id = $form_state->getValue('field_symbol_id')[0]['value'];
+
+  // Check for unique class name.
+  foreach ($terms as $term) {
+    if ($term->field_symbol_id->value == $symbol_id) {
+      // Skip current term.
+      if (!empty($form_state->getFormObject()->getEntity())) {
+        if ($term->id() == $form_state->getFormObject()->getEntity()->id()) {
+          continue;
+        }
+      }
+      $form_state->setErrorByName('field_symbol_id', t('Symbol ID must be unique'));
+      break;
+    }
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_postsave().
+ */
+function icon_select_taxonomy_term_postsave(Term $term) {
+  if ($term->bundle() == 'icons') {
+    // Generate Sprites.
+    SvgSpriteGenerator::generateSprites('icons');
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_postdelete().
+ */
+function icon_select_taxonomy_term_postdelete(Term $term) {
+  icon_select_taxonomy_term_postsave($term);
+}

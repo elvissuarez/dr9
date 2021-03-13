@@ -1,0 +1,25 @@
+{
+    "name": "drupal/hook_post_action",
+    "description": "Currently Drupal core does not offer any hook to do actions after a node/entity is insered/updated/deleted in Database. So this module introduces several new Drupal hooks to overcome this limitation",
+    "type": "drupal-module",
+    "homepage": "https://drupal.org/project/hook_post_action",
+    "authors": [
+        {
+            "name": "Sina Salek (sinasalek)",
+            "homepage": "https://www.drupal.org/u/sinasalek",
+            "role": "Maintainer"
+        },
+        {
+            "name": "Serge Skripchuk (id.tarzanych)",
+            "homepage": "https://www.drupal.org/u/idtarzanych",
+            "role": "Co-maintainer"
+        }
+    ],
+    "support": {
+        "issues": "https://drupal.org/project/issues/hook_post_action",
+        "irc": "irc://irc.freenode.org/drupal-contribute",
+        "source": "https://cgit.drupalcode.org/hook_post_action"
+    },
+    "license": "GPL-2.0-or-later",
+    "minimum-stability": "dev"
+}

@@ -1,0 +1,41 @@
+{#
+/**
+ * @file
+ * Footermap Template
+ *
+ * Available variables:
+ *   - footermap: The entire footermap render array, which may be printed as
+ *     {{ footermap }} or iterated through with a for loop. Each key is the
+ *     menu name and an array for each menu, which will render as a footermap
+ *     header and its children as footermap items. It is possible to dig into
+ *     a menu child and render only the children.
+ *     - (children): Each element child represents a menu header keyed by the
+ *       menu name containing the following values:
+ *       - title: An optional title for the menu header if the menu header
+ *         block configuration is enabled.
+ *       - items: An array of menu links to render keyed by 'menu-' + the menu
+ *         link id, and contains the following values:
+ *         - title: The menu link title.
+ *         - href: The menu link path or URL.
+ *         - level: The depth of the child within the footer map.
+ *         - language: The language of the menu link.
+ *         - attributes: Attributes to apply to the footermap item.
+ *         - children: Additional footermap items to render underneath this
+ *           child similar to theme_item_list().
+ *
+ * Advanced example:
+ *
+ *   {% for key, menu in footermap %}
+ *     {% if key == 'main-menu' %}
+ *        {% for item in menu.items %}
+ *          <div{{ item.attributes }}>{{ item }}</div>
+ *        {% endfor %}
+ *     {% endif %}
+ *   {% endfor %}
+ */
+#}
+{% for key, menu in footermap %}
+  <nav class="footermap-col footermap-col--{{ loop.index }} footermap-col--{{ key }}">
+    {{ menu }}
+  </nav>
+{% endfor %}

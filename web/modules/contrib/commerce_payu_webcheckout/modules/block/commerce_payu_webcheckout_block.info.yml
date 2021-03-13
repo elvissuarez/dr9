@@ -1,0 +1,13 @@
+name: PayU Webcheckout Block
+type: module
+description: 'Creates a handy block that can be used for displaying PayU official images somewhere in the site.'
+package: Commerce
+# core: 8.x
+dependencies:
+  - commerce_payu_webcheckout:commerce_payu_webcheckout
+
+# Information added by Drupal.org packaging script on 2019-04-02
+version: '8.x-2.0-alpha1'
+core: '8.x'
+project: 'commerce_payu_webcheckout'
+datestamp: 1554164888

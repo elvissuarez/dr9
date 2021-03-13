@@ -1,0 +1,96 @@
+<?php
+
+/**
+ * @file
+ * A working example for hook_post_action module.
+ */
+
+use Drupal\Core\Entity\EntityInterface;
+
+/**
+ * Implements hook_entity_postsave().
+ */
+function hook_post_action_example_entity_postsave(EntityInterface $entity, $op) {
+  $id = $entity->id();
+  $entity_type = $entity->getEntityTypeId();
+
+  \Drupal::logger('hook_post_action_test')
+    ->info("The {$op}d entity {$entity_type} id is {$id} from " . __FUNCTION__);
+}
+
+/**
+ * Implements hook_entity_postinsert().
+ */
+function hook_post_action_example_entity_postinsert(EntityInterface $entity) {
+  $id = $entity->id();
+  $entity_type = $entity->getEntityTypeId();
+
+  \Drupal::logger('hook_post_action_test')
+    ->info("The inserted entity {$entity_type} id is {$id} from " . __FUNCTION__);
+}
+
+/**
+ * Implements hook_entity_postupdate().
+ */
+function hook_post_action_example_entity_postupdate(EntityInterface $entity) {
+  $id = $entity->id();
+  $entity_type = $entity->getEntityTypeId();
+
+  \Drupal::logger('hook_post_action_test')
+    ->info("The updated entity {$entity_type} id is {$id} from " . __FUNCTION__);
+}
+
+/**
+ * Implements hook_entity_postdelete().
+ */
+function hook_post_action_example_entity_postdelete(EntityInterface $entity) {
+  $id = $entity->id();
+  $entity_type = $entity->getEntityTypeId();
+
+  \Drupal::logger('hook_post_action_test')
+    ->info("The deleted entity {$entity_type} id is {$id} from " . __FUNCTION__);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_postsave().
+ */
+function hook_post_action_example_node_postsave(EntityInterface $entity, $op) {
+  $id = $entity->id();
+  $bundle = $entity->bundle();
+
+  \Drupal::logger('hook_post_action_test')
+    ->info("The {$op}d node {$bundle} id is {$id} from " . __FUNCTION__);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_postinsert().
+ */
+function hook_post_action_example_node_postinsert(EntityInterface $entity) {
+  $id = $entity->id();
+  $bundle = $entity->bundle();
+
+  \Drupal::logger('hook_post_action_test')
+    ->info("The inserted node {$bundle} id is {$id} from " . __FUNCTION__);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_postupdate().
+ */
+function hook_post_action_example_node_postupdate(EntityInterface $entity) {
+  $id = $entity->id();
+  $bundle = $entity->bundle();
+
+  \Drupal::logger('hook_post_action_test')
+    ->info("The updated node {$bundle} id is {$id} from " . __FUNCTION__);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_postdelete().
+ */
+function hook_post_action_example_node_postdelete(EntityInterface $entity) {
+  $id = $entity->id();
+  $bundle = $entity->bundle();
+
+  \Drupal::logger('hook_post_action_test')
+    ->info("The deleted node {$bundle} id is {$id} from " . __FUNCTION__);
+}

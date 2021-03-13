@@ -1,0 +1,28 @@
+<?php
+
+/**
+ * @file
+ * Hook implementations for commerce_payu_webcheckout.
+ */
+
+use Drupal\commerce_payu_webcheckout\EntityOperations;
+use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\commerce_payment\Entity\PaymentGatewayInterface;
+
+/**
+ * Implements hook_ENTITY_TYPE_delete().
+ */
+function commerce_payu_webcheckout_commerce_order_delete(OrderInterface $order) {
+  Drupal::service('class_resolver')
+    ->getInstanceFromDefinition(EntityOperations::class)
+    ->onOrderDelete($order);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete().
+ */
+function commerce_payu_webcheckout_commerce_payment_gateway_delete(PaymentGatewayInterface $gateway) {
+  Drupal::service('class_resolver')
+    ->getInstanceFromDefinition(EntityOperations::class)
+    ->onGatewayDelete($gateway);
+}

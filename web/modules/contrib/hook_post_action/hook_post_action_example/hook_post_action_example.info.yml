@@ -1,0 +1,12 @@
+name: 'Hook Post Action Example'
+type: module
+description: 'A working example for hook_post_action module'
+core: 8.x
+package: Drupal
+dependencies:
+  - hook_post_action
+
+# Information added by Drupal.org packaging script on 2021-01-12
+version: '8.x-1.1'
+project: 'hook_post_action'
+datestamp: 1610451403

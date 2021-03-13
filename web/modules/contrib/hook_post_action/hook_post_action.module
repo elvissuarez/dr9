@@ -1,0 +1,73 @@
+<?php
+
+/**
+ * @file
+ * Contains post hooks declaration.
+ */
+
+use Drupal\Core\Entity\EntityInterface;
+
+/**
+ * Implements hook_entity_insert().
+ */
+function hook_post_action_entity_insert(EntityInterface $entity) {
+  drupal_register_shutdown_function('_hook_post_action_post_save', $entity, 'insert');
+}
+
+/**
+ * Implements hook_entity_update().
+ */
+function hook_post_action_entity_update(EntityInterface $entity) {
+  drupal_register_shutdown_function('_hook_post_action_post_save', $entity, 'update');
+}
+
+/**
+ * Implements hook_entity_delete
+ */
+function hook_post_action_entity_delete(EntityInterface $entity) {
+  drupal_register_shutdown_function('_hook_post_action_post_save', $entity, 'delete');
+}
+
+/**
+ * Post save shutdown callback.
+ *
+ * @param EntityInterface $entity
+ *   Updated entity.
+ * @param string $op
+ *   Operation name.
+ */
+function _hook_post_action_post_save(EntityInterface $entity, $op) {
+  $entity_is_saved = FALSE;
+  $new_entity = NULL;
+
+  if ($op == 'insert' || $op == 'update') {
+    $entity_is_saved = TRUE;
+  }
+  if ($op == 'delete') {
+    try {
+      $new_entity = \Drupal::entityTypeManager()
+        ->getStorage($entity->getEntityTypeId())
+        ->load($entity->id());
+      if (!$new_entity) {
+        $entity_is_saved = TRUE;
+      }
+    }
+    catch (\Drupal\Component\Plugin\Exception\PluginNotFoundException $e) {
+      // If Entity Type is deleted, allow hooks to run; implementing modules
+      // beware.
+      $entity_is_saved = TRUE;
+    }
+  }
+  if ($entity_is_saved) {
+    $type = $entity->getEntityTypeId();
+    $module_handler = Drupal::moduleHandler();
+
+    // Invokes hook_ENTITY_TYPE_post<operation name>.
+    $module_handler->invokeAll($type . '_post' . $op, [$entity]);
+    $module_handler->invokeAll($type . '_postsave', [$entity, $op]);
+
+    // Invokes hook_entity_post<operation name>.
+    $module_handler->invokeAll('entity_post' . $op, [$entity]);
+    $module_handler->invokeAll('entity_postsave', [$entity, $op]);
+  }
+}

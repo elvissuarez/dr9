@@ -1,0 +1,5 @@
+services:
+  icon_select.twig.extension:
+    class: Drupal\icon_select\Twig\Extension\IconSelectExtension
+    tags:
+      - { name: twig.extension }

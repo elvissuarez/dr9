@@ -1,0 +1,19 @@
+{#
+/**
+ * @file
+ * footermap-header.html.twig
+ *
+ * Available variables:
+ *   - title: The menu title.
+ *   - title_attributes: A string of HTML attributes to apply to the title
+ *     element.
+ *   - attributes: A string of HTML attributes to apply to the list element.
+ *   - items: An array of menu items to render.
+ */
+#}
+<h3{{ title_attributes }}>{{ title }}</h3>
+<ul{{ attributes }}>
+  {% for item in items %}
+    {{ item }}
+  {% endfor %}
+</ul>

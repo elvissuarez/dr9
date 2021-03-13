@@ -1,0 +1,15 @@
+name: Icon Select
+type: module
+description: Icon selector field
+core: 8.x
+package: Liip
+core_version_requirement: ^8 || ^9
+dependencies:
+  - drupal:taxonomy
+  - drupal:field
+  - hook_post_action:hook_post_action
+
+# Information added by Drupal.org packaging script on 2021-01-25
+version: '2.0.1'
+project: 'icon_select'
+datestamp: 1611573205

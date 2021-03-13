@@ -1,0 +1,43 @@
+<?php
+
+/**
+ * @file
+ * Footermap module file.
+ *
+ * This module queries the menu for pages and makes a dynamic sitemap
+ * at the bottom of the page.
+ *
+ * copyright Matthew Radcliffe, Kosada Inc.
+ */
+
+/**
+ * Implements hook_help().
+ */
+function footermap_help($path, $arg) {
+  if ($path === 'help.page.footermap') {
+    return '<p>' . t('Displays a dynamic, flexible sitemap at the bottom of a page via the Drupal block system. This is routinely used as a way of providing quick links at the bottom of the page. It is not advised to generate a full site map at the footer without caching.') . '</p>';
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function footermap_theme($existing, $type, $theme, $path) {
+  return [
+    'footermap' => [
+      'variables' => ['footermap' => NULL, 'title' => NULL, 'block' => NULL],
+      'file' => 'footermap.theme.inc',
+      'template' => 'footermap',
+    ],
+    'footermap_item' => [
+      'variables' => ['url' => NULL, 'title' => NULL, 'level' => NULL, 'children' => NULL, 'attributes' => NULL, 'weight' => NULL],
+      'file' => 'footermap.theme.inc',
+      'template' => 'footermap-item',
+    ],
+    'footermap_header' => [
+      'variables' => ['title' => NULL, 'title_display' => NULL, 'items' => NULL, 'attributes' => NULL, 'menu_name' => NULL],
+      'file' => 'footermap.theme.inc',
+      'template' => 'footermap-header',
+    ],
+  ];
+}

@@ -1,0 +1,26 @@
+{#
+/**
+ * @file
+ * footermap-item.html.twig
+ *
+ * Available variables:
+ *   - title: The menu title.
+ *   - href: The menu link path.
+ *   - link: A themed link to print.
+ *   - has_children: A boolean indicating whether the item has children.
+ *   - children: (optional) array of menu children.
+ *   - attributes: A string of HTML attributes to apply to the list item.
+ *   - link_attributes: A string of HTML attributes to apply to the anchor
+ *     element that are passed through from the Url object.
+ */
+#}
+<li{{ attributes }}>
+  <a href="{{ url }}" {{ link_attributes }}>{{ title }}</a>
+  {% if has_children %}
+    <ul>
+    {% for child in children %}
+      {{ child }}
+    {% endfor %}
+    </ul>
+  {% endif %}
+</li>

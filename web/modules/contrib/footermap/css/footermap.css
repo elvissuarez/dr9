@@ -1,0 +1,21 @@
+.footermap {
+  margin: 0 auto;
+  padding: 0;
+  border: 0;
+}
+
+.footermap-col {
+  display: inline-block;
+  margin: 0 1em;
+  vertical-align: top;
+  padding: 0 5px;
+}
+
+.footermap-col-heading {
+  text-align: center;
+}
+
+.footermap-item {
+  display: block;
+  list-style: none inside none;
+}

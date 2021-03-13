@@ -35,5 +35,5 @@ title_segment_as_link: false
 follow_redirects: true
 limit_segment_display: FALSE
 truncator_mode: false
-truncator_length: 100
+truncator_length: '100'
 truncator_dots: true

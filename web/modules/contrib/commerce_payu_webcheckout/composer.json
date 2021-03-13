@@ -1,0 +1,11 @@
+{
+  "name": "drupal/commerce_payu_webcheckout",
+  "type": "drupal-module",
+  "description": "Drupal Commerce Payu Webcheckout",
+  "homepage": "http://drupal.org/project/commerce_payu_webcheckout",
+  "license": "GPL-2.0+",
+  "require": {
+    "drupal/commerce": "^2.12"
+  },
+  "minimum-stability": "dev"
+}
