@@ -1,0 +1,52 @@
+global-styling:
+  version: VERSION
+  js:
+    js/global.js: {}
+    js/app.js: {}
+    js/sidebar.js: {}
+    js/sortproducts.js: {}
+    https://cdn.widgetwhats.com/script.min.js: {type: external, attributes:{async: true, data-id: 60750}}
+    dependencies:
+      - core/jquery
+  css:
+    component:
+      css/style.css: {}
+      css/colors.css: {}
+    theme:
+      '//fonts.googleapis.com/css?family=Montserrat:400,500,600,700,700i&display=swap': { type: external, minified: true }
+bootstrap:
+  js:
+    /libraries/popper.js/dist/umd/popper.min.js: {}
+    /libraries/bootstrap/dist/js/bootstrap.min.js: {}
+  css:
+    component:
+      /libraries/bootstrap/dist/css/bootstrap.min.css: {}
+bootstrap_cdn:
+  js:
+    //cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js: {}
+    //stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js: {}
+  css:
+    component:
+      //stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css: {}
+color.preview:
+  version: VERSION
+  css:
+    theme:
+      color/preview.css: {}
+  js:
+    color/preview.js: {}
+  dependencies:
+    - color/drupal.color
+tools-slider:
+  version: 1.x
+  css:
+    theme:
+      css/styles.css: {}
+  js:
+    js/jquery.elevatezoom.js: {}
+    js/slider.js: {}
+    js/flex.js: {}
+  dependencies:
+    - core/jquery
+    - core/jquery.once
+    - core/drupal

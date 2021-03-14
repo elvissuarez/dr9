@@ -1,39 +1,25 @@
-name: mytool
 type: theme
-description: 'Mytool theme based on boostrap barrio theme'
-# core: 8.x
+base theme: bootstrap
+core: 8.x
 core_version_requirement: ^8 || ^9
-base theme: bootstrap_barrio
 
-libraries:
-  - mytool/bootstrap_cdn
-  - mytool/global-styling
+name: 'Mytool'
+description: 'A Drupal Bootstrap 3 based sub-theme.'
+package: 'Bootstrap'
 
 regions:
-  top_header: 'Top header'
-  top_header_form: 'Top header form'
-  header: Header
-  header_form: 'Header form'
-  primary_menu: 'Primary menu'
-  secondary_menu: 'Secondary menu'
+  navigation: 'Navigation'
+  navigation_collapsible: 'Navigation (Collapsible)'
+  header: 'Top Bar'
+  highlighted: 'Highlighted'
+  help: 'Help'
+  content: 'Content'
+  sidebar_first: 'Primary'
+  sidebar_second: 'Secondary'
+  footer: 'Footer'
   page_top: 'Page top'
   page_bottom: 'Page bottom'
-  highlighted: Highlighted
-  featured_top: 'Featured top'
-  breadcrumb: Breadcrumb
-  content: Content
-  sidebar_first: 'Sidebar first'
-  sidebar_second: 'Sidebar second'
-  featured_bottom_first: 'Featured bottom first'
-  featured_bottom_second: 'Featured bottom second'
-  featured_bottom_third: 'Featured bottom third'
-  footer_first: 'Footer first'
-  footer_second: 'Footer second'
-  footer_third: 'Footer third'
-  footer_fourth: 'Footer fourth'
-  footer_fifth: 'Footer fifth'
 
-# Information added by Drupal.org packaging script on 2020-10-25
-# version: '5.1.4'
-# project: 'bootstrap_barrio'
-# datestamp: 1603660712
+libraries-extend:
+  bootstrap/framework:
+    - mytool/framework

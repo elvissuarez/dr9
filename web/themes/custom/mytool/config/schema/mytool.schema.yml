@@ -1,5 +1,5 @@
-# Schema for the configuration files of the Bootstrap Barrio Subtheme.
+# Schema for the theme setting configuration file of the THEMETITLE theme.
 
 mytool.settings:
-  type: bootstrap_barrio.settings
-  label: 'Mytool theme settings'
+  type: theme_settings
+  label: 'mytool settings'
