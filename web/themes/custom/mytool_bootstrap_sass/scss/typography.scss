@@ -13,6 +13,10 @@ $font-raleway: 'Raleway',
 Arial,
 Verdana,
 sans-serif;
+$font-monserrat: 'Montserrat',
+Arial,
+Verdana,
+sans-serif !default;
 // Fonts
 //
 // Font, line-height, and color for body text, headings, and more.
@@ -22,7 +26,7 @@ $font-family-serif: Georgia,
 "Times New Roman",
 Times,
 serif !default;
-$font-family-base: $font-family-sans-serif;
+$font-family-base: $font-monserrat;
 $font-size-base: 1rem; // Assumes the browser default, typically `16px`
 $font-size-lg: $font-size-base * 1.25;
 $font-size-sm: $font-size-base * .875;

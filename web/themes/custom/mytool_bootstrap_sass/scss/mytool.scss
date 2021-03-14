@@ -1,0 +1,83 @@
+/*
+Theme Name: Bootstrap 4 Sass
+Description: Bootstrap 4 with Sass
+*/
+
+// import files
+@import "import";
+
+/* GENERAL STYLES
+-------------------------------------------------*/
+
+body {
+  background: $body-bg;
+}
+
+.header-main{
+  background-color: $mytool-bar;
+  // .navbar.container{
+    // max-width: 1400px;
+    // @include double-extra-large{
+    //   max-width: 1200px;
+    // }
+    // @include extra-large{
+    //   max-width: 1140px;
+    // }
+    // @include large{
+    //   max-width: 940px;
+    // }
+    // @include medium{
+    //   max-width: 720px;
+    // }
+    // @include small{
+    //   max-width: 420px;
+    // }
+    // @include extra-small{
+    //   max-width: 250px;
+    // }
+  // }
+  #navbar-collapse{
+    color: $white;
+    @include desktop{
+      display: flex;
+    }
+  }
+  .region-nav-right {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+  }
+}
+.cart--cart-block{
+  width: 100%;
+  // display: flex;
+  // justify-content: flex-end;
+  .cart-block-summary {
+    // padding: 1rem;
+    .cart-block-summary--text {
+      background-color: $main-bussiness-color;
+      padding: 0 10px;
+      width: 130px;
+      margin: 0;
+      margin-right: 1.2rem;
+      .cart-link{
+        text-decoration: none;
+        background-color: transparent;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        .cart-link__caption {
+          text-align: center;
+          font-weight: 600;
+          text-transform: uppercase;
+          font-size: 13px;
+          line-height: 15px;
+        }
+        .cart-block--summary__icon{
+          font-size: 26px;
+          margin-left: 6px;
+        }
+      }
+    }
+  }
+}

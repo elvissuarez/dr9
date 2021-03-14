@@ -1,0 +1,46 @@
+$breakpoints: ( xs: 0, sm: 576px, md: 768px, lg: 992px, xl: 1200px, xxl: 1400px );
+@mixin extra-small() {
+  @media only screen and (max-width: 320px) {
+      @content;
+  }
+}
+@mixin small() {
+  @media only screen and (max-width: 576px) {
+      @content;
+  }
+}
+@mixin medium() {
+  @media only screen and (max-width: 768px) {
+      @content;
+  }
+}
+@mixin large() {
+  @media only screen and (max-width: 992px) {
+      @content;
+  }
+}
+@mixin extra-large() {
+  @media only screen and (max-width: 1200px) {
+      @content;
+  }
+}
+@mixin double-extra-large() {
+  @media only screen and (max-width: 1400px) {
+      @content;
+  }
+}
+@mixin desktop() {
+  @media only screen and (min-width: 1180px) {
+      @content;
+  }
+}
+@mixin tablet() {
+  @media only screen and (min-width: 780px) {
+      @content;
+  }
+}
+@mixin mobile() {
+  @media only screen and (min-width: 300px) {
+      @content;
+  }
+}
