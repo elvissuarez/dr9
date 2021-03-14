@@ -1,6 +1,6 @@
 name: Mytool Bootstrap SASS
 type: theme
-description: 'SASS starter kit for a Bootstrap Barrio SubTheme.'
+description: 'Mytool SASS SubTheme.'
 # version: VERSION
 core: 8.x
 core_version_requirement: ^8 || ^9
