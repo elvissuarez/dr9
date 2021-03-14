@@ -52,6 +52,7 @@
         "drupal/commerce": "^2.24",
         "drupal/commerce_paypal": "^1.0@RC",
         "drupal/commerce_payu_webcheckout": "^2.0@alpha",
+        "drupal/commerce_stock": "^1.0@alpha",
         "drupal/content_lock": "^2.2",
         "drupal/core-composer-scaffold": "~8.9.13",
         "drupal/core-project-message": "~8.9.13",
