@@ -1,0 +1,3 @@
+services:
+  synchronize_file_product.synchronize_file_product_services:
+    class: Drupal\synchronize_file_product\Services\SynchronizeFileProductService

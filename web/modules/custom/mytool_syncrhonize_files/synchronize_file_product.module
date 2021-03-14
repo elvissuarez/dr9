@@ -1,0 +1,18 @@
+<?php
+
+/**
+ * @file
+ * This module holds functions useful for Drupal Products.
+ *
+ * Please contribute!
+ */
+
+/**
+ * Implements hook_cron().
+ */
+function synchronize_file_product_cron() {
+  $service = \Drupal::service('synchronize_file_product.synchronize_file_product_services');
+  $service->processEntireDir();
+  $service->sendNotificationMailSfp();
+  \Drupal::logger('synchronize_file_product')->notice('Cron Ejecutado');
+}

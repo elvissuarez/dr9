@@ -1,0 +1,6 @@
+upload_mass_product.form:
+  title: 'C/A Productos Excel'
+  description: 'Crear/Actualizar productos con archivo excel'
+  parent: commerce.admin_commerce
+  url: internal:/products/mass/upload
+  weight: 100

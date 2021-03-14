@@ -1,0 +1,7 @@
+name: Synchronize File Product
+description: Syncrhonize files for each product
+package: MyTool
+type: module
+version: 1.0
+core: 8.x
+datestamp: 1592579754

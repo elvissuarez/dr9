@@ -1,0 +1,6 @@
+synchronize_file_product.form:
+  title: 'Configuración Directorio Imagenes'
+  description: 'Configurar el directorio donde estan las imagenes'
+  parent: commerce.admin_commerce
+  url: internal:/products/mass/upload/settings
+  weight: 100

@@ -1,0 +1,25 @@
+<?php
+
+/**
+ * @file
+ * This module holds functions useful for Drupal Products.
+ *
+ * Please contribute!
+ */
+
+/**
+ * Implements hook_mail().
+ */
+function upload_mass_product_mail($key, &$message, $params) {
+  $options = [
+    'langcode' => $message['langcode'],
+  ];
+  switch ($key) {
+    case 'upload_mass_product_mail':
+      $message['from'] = \Drupal::config('system.site')->get('mail');
+      $message['subject'] = $params['subject'];
+      $message['body'][] = $params['message'];
+      $message['params']['files'] = $params['attachments'];
+      break;
+  }
+}

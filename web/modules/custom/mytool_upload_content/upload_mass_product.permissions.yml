@@ -1,0 +1,4 @@
+'access upload_mass_product':
+  title: 'usar formulario'
+  description: ''
+  restrict access: TRUE

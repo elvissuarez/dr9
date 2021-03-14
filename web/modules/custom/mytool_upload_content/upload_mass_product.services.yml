@@ -1,0 +1,3 @@
+services:
+  upload_mass_product.upload_mass_product_services:
+    class: Drupal\upload_mass_product\Services\UploadMassProductService

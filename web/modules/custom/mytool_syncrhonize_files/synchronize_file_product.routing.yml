@@ -1,0 +1,7 @@
+synchronize_file_product.settings:
+  path: /products/mass/upload/settings
+  defaults:
+    _form: '\Drupal\synchronize_file_product\Form\SynchronizeFileProductForm'
+    _title: 'Configuración Syncronización Productos'
+  requirements:
+    _permission: 'access upload_mass_product'

@@ -1,0 +1,7 @@
+upload_mass_product:
+  path: /products/mass/upload
+  defaults:
+    _title: 'Actualizacíon Masiva de Productos'
+    _form: '\Drupal\upload_mass_product\Form\UploadMassProductForm'
+  requirements:
+    _permission: 'access upload_mass_product'

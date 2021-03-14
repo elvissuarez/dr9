@@ -1,0 +1,19 @@
+<?php
+
+use Drupal\Component\Render\FormattableMarkup;
+
+/**
+ * Implements HOOK_form_FORM_ID_alter
+ */
+function mytool_customize_search_box_form_views_exposed_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id)
+{
+  if ($form['#id'] == 'views-exposed-form-buscador-productos-mytool-page-1') {
+    // query, actions[submit]
+    // $form['actions']['submit']['#prefix'] = "<i class='fa fa-search'></i>";
+    $value = new FormattableMarkup('<i class="fas fa-search"></i>@text', ['@text' => '',]);
+    $form['actions']['submit']['#value'] = $value;
+    $form['query']['#size'] = 100;
+    // dpm($form_id);
+    // dpm($form);
+  }
+}

@@ -1,0 +1,9 @@
+name: 'Mytool Validate Submit Contact'
+type: module
+description: 'Manage user contact form.'
+package: MyTool
+type: module
+version: 1.0
+core: 8.x
+dependencies:
+  - 'webform:webform'
