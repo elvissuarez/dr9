@@ -1,0 +1,21 @@
+#block-views-block-medios-de-pago-block-1 {
+  width: 70%;
+  margin: auto;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #E5E5E5;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+}
+
+.foot-medios-pago-row{
+  padding: 4px;
+}
+
+#block-views-block-medios-de-pago-block-1 .group-row-view{
+  display: flex;
+  justify-content: center;
+}
+
+#block-views-block-medios-de-pago-block-1 .group-row-view h3{
+  display: none;
+}

@@ -1,0 +1,30 @@
+.footermap-col{
+  padding: 0;
+  margin: 0;
+}
+.footermap-col .list-inline{
+  padding: 0;
+  margin: auto;
+}
+.footermap-col .list-inline>li{
+  padding: 0;
+  margin: 1rem;
+  vertical-align: top;
+}
+.footermap-col .list-inline a{
+  color: #5a5a5a;
+  text-decoration: none;
+}
+.footermap-col .list-inline a:hover{
+  color: #5a5a5a;
+  text-decoration: none;
+}
+.footermap-item--depth-1{
+  font-weight: bold;
+}
+.footermap-item--depth-1>ul{
+  padding: 0;
+}
+.footermap-item--depth-2{
+  font-weight: normal;
+}

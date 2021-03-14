@@ -2,10 +2,18 @@ global-styling:
   version: VERSION
   js:
     js/global.js: {}
+    js/app.js: {}
+    js/sidebar.js: {}
+    js/sortproducts.js: {}
+    https://cdn.widgetwhats.com/script.min.js: {type: external, attributes:{async: true, data-id: 60750}}
+    dependencies:
+      - core/jquery
   css:
     component:
       css/style.css: {}
       css/colors.css: {}
+    theme:
+      '//fonts.googleapis.com/css?family=Montserrat:400,500,600,700,700i&display=swap': { type: external, minified: true }
 bootstrap:
   js:
     /libraries/popper.js/dist/umd/popper.min.js: {}
@@ -29,3 +37,16 @@ color.preview:
     color/preview.js: {}
   dependencies:
     - color/drupal.color
+tools-slider:
+  version: 1.x
+  css:
+    theme:
+      css/styles.css: {}
+  js:
+    js/jquery.elevatezoom.js: {}
+    js/slider.js: {}
+    js/flex.js: {}
+  dependencies:
+    - core/jquery
+    - core/jquery.once
+    - core/drupal

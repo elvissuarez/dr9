@@ -1,0 +1,77 @@
+{#
+/**
+ * @file
+ *
+ * Default product template.
+ *
+ * Available variables:
+ * - attributes: HTML attributes for the wrapper.
+ * - product: The rendered product fields.
+ *   Use 'product' to print them all, or print a subset such as
+ *   'product.title'. Use the following code to exclude the
+ *   printing of a given field:
+ *   @code
+ *   {{ product|without('title') }}
+ *   @endcode
+ * - product_entity: The product entity.
+ * - product_url: The product URL.
+ *
+ * @ingroup themeable
+ */
+#}
+<article{{ attributes }}>
+  {# {{- product|without('variation_attributes') -}} #}
+  {# {{ kint(product|keys) }} #}
+</article>
+<div class="col-md-6 product-images-conteiner">
+  {{ product.variation_field_imagen_producto }}
+</div>
+<div class="col-md-6 product-details-container">
+  <div class="">
+      {{ product.field_marca }}
+      <h2>{{ product.title }}</h2>
+  </div>
+  <div class="variation-prices">
+    {{ product.variation_price }}
+    {{ product.variations }}
+  </div>
+  {% if product.field_tiempo_de_entrega|render %}
+  <div class="delivery-time">
+    <span class="delivery-time__lbl">Tiempo de entrega: </span> {{product.field_tiempo_de_entrega}}
+  </div>
+  {% endif %}
+</div>
+<div class="row col-md-12">
+  <h3 class="product-header-section">Descripción</h3>
+  <div class="product-body-section">
+      {{ product.body }}
+  </div>
+</div>
+
+{% if product.field_especificaciones|render %}
+<div class="row col-md-12">
+  <h3 class="product-header-section">Especificaciones Técnicas</h3>
+  <div class="product-body-section product-specifications">
+      {{ product.field_especificaciones }}
+  </div>
+</div>
+{% endif %}
+
+{# {% set images = product.variation_field_imagen_producto %}
+  {{ images }}
+  {% for img in images %}
+    {% if img.entity %}
+      {% for imgv in img %}
+        {{kint(imgv|keys )}}
+        {% set imagestyle = {
+          '#theme':      'image_style',
+          '#style_name': 'large',
+          '#uri':        imgv.entity.uri.value,
+          '#alt':        imge.alt,
+          '#attributes': { class: 'product-image' },
+        } %}
+
+        {{ imagestyle }}
+      {% endfor %}
+    {% endif %}
+  {% endfor %} #}
