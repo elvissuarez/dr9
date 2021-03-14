@@ -113,6 +113,7 @@
         "drupal/sitemap": "^2.0@beta",
         "drupal/smtp": "^1.0",
         "drupal/state_machine": "^1.0",
+        "drupal/taxonomy_manager": "^2.0",
         "drupal/taxonomy_menu_ui": "^1.4",
         "drupal/token": "^1.9",
         "drupal/transliterate_filenames": "^1.5",
