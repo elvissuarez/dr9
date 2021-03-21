@@ -1,0 +1,11 @@
+--- modules/fontawesome_iconpicker_widget/fontawesome_iconpicker_widget.install
++++ modules/fontawesome_iconpicker_widget/fontawesome_iconpicker_widget.install
+@@ -24,7 +24,7 @@ function fontawesome_iconpicker_widget_requirements($phase) {
+     else {
+       $requirements['fontawesome_iconpicker']['severity'] = REQUIREMENT_ERROR;
+       $requirements['fontawesome_iconpicker']['value'] = t('Not installed');
+-      $requirements['fontawesome_iconpicker']['description'] = t('The fontIconPicker library could not be found. To use the Font Awesome Iconpicker, please verify that the fontIconPicker library is installed correctly. Please see the Font Awesome Iconpicker module README file for more details.');
++      $requirements['fontawesome_iconpicker']['description'] = t('The fontIconPicker library could not be found. To use the Font Awesome Iconpicker, please verify that the fontIconPicker library is installed correctly. Please see the Font Awesome Iconpicker submodule README file for more details.');
+     }
+   }
+ 

@@ -311,7 +311,7 @@ body {
       }
     }
   }
-  .region-footer-first, .region-footer-second{
+  .region-footer-first, .region-footer-second, .region-footer-third{
     border-bottom: $border-style-footer;
   }
   // Bloque medios de pago
@@ -347,6 +347,99 @@ body {
     }
     .views-bootstrap-list-group, .views-view-list-group{
       justify-content: center;
+    }
+  }
+  // Logo footer block
+  .logo-foot-block{
+    margin: 20px 0;
+  }
+  // Bloque footermap
+  .footemap-block{
+    margin: 0 0 10px 0;
+    .content{
+      display: flex;
+      justify-content: center;
+    }
+    .footermap-item ul{
+      display: table;
+    }
+    a{
+      color: $footer-color;
+      &:hover{
+        text-decoration: none;
+      }
+    }
+    .footermap-col{
+      margin: 0;
+      padding: 0;
+    }
+    .footermap-item--depth-1{
+      margin: 0 20px;
+      a{
+        font-size: 18px;
+        font-weight: 600;
+      }
+      .footermap-item--depth-2{
+        padding-left: 2px;
+        a{
+          font-weight: 500;
+          font-size: 15px;
+        }
+      }
+    }
+  }
+  // Legal info block
+  .legal-info-block{
+    margin: 20px 0 40px 0;
+    p{
+      font-size: 15px;
+    }
+    .content{
+      display: flex;
+      justify-content: center;
+    }
+  }
+}
+#views-bootstrap-buscador-productos-mytool-page-1{
+  .row{
+    max-width: 100%;
+  }
+  .row-products{
+    margin-bottom: 15px;
+    a{
+      color: $main-bussiness-color;
+      &:hover{
+        text-decoration: none;
+      }
+    }
+    h2{
+      font-size: 16px;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 5;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      height: 94px;
+    }
+    .card-product{
+      border-radius: 20px;
+      min-height: 386px;
+      &:hover{
+        box-shadow: 0 16px 24px 2px #e0791c1a, 0 6px 30px 5px #e0791c1a, 0 8px 10px -5px #e0791c1a;
+      }
+      .card-body{
+        padding-top: 5px;
+      }
+      .card-img-top{
+        border-radius: 0;
+        text-align: center;
+        max-width: 100%;
+      }
+      .card-text{
+        color: black;
+        font-size: 22px;
+        font-weight: 600;
+      }
     }
   }
 }

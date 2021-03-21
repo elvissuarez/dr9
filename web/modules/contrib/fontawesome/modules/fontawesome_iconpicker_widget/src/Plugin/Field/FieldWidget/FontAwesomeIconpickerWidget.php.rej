@@ -1,0 +1,11 @@
+--- modules/fontawesome_iconpicker_widget/src/Plugin/Field/FieldWidget/FontAwesomeIconpickerWidget.php
++++ modules/fontawesome_iconpicker_widget/src/Plugin/Field/FieldWidget/FontAwesomeIconpickerWidget.php
+@@ -82,7 +82,7 @@ class FontAwesomeIconpickerWidget extends FontAwesomeIconWidget {
+ 
+     // Throw error if library file not found.
+     if (!fontawesome_iconpicker_widget_check_installed()) {
+-      $this->messenger->addWarning($this->t('The fontIconPicker library could not be found. Please verify that fontIconPicker is installed correctly. Please see the Font Awesome IconPicker module README file for more details.'));
++      $this->messenger->addWarning($this->t('The fontIconPicker library could not be found. To use the Font Awesome Iconpicker, please verify that the fontIconPicker library is installed correctly. Please see the Font Awesome Iconpicker submodule README file for more details.'));
+     }
+ 
+     $cardinality = $this->fieldDefinition->getFieldStorageDefinition()->getCardinality();

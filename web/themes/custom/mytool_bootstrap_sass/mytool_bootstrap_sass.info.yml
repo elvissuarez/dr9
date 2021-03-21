@@ -10,7 +10,7 @@ libraries:
   - mytool_bootstrap_sass/global-styling
 libraries-override:
   bootstrap_barrio/global-styling: false
-  bootstrap_barrio/file: false
+  # bootstrap_barrio/file: false
 regions:
   brand_header: 'Brand top Header'
   search: 'Search'

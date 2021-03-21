@@ -36,7 +36,7 @@ class UploadMassProductForm extends FormBase {
     $form['link'] = [
       '#type' => 'link',
       '#title' => "Descargar Plantilla Excel",
-      '#url' => Url::fromUri(file_create_url('public://plantillas/PlantillaProductos.xlsx')),
+      '#url' => Url::fromUri(file_create_url('public://plantillas/plantillaproductos-gs.xlsx')),
       '#attributes' => [
         ' class' => ['btn', 'btn-primary', 'active', 'pull-right', 'col-md-4'],
         ' role' => "button",

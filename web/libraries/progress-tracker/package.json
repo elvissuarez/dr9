@@ -1,0 +1,51 @@
+{
+  "name": "progress-tracker",
+  "description": "A HTML component to illustrate the steps in a multi step process e.g. a multi step form, a timeline or a quiz.",
+  "version": "2.0.6",
+  "main": "src/styles/progress-tracker.scss",
+  "repository": {
+    "type": "git",
+    "url": "git+https://nigelotoole@github.com/NigelOToole/progress-tracker.git"
+  },
+  "bugs": {
+    "url": "https://github.com/NigelOToole/progress-tracker/issues"
+  },
+  "homepage": "https://github.com/NigelOToole/progress-tracker#readme",
+  "author": "Nigel O Toole <pure@purestructure.com> (http://www.purestructure.com)",
+  "license": "MIT",
+  "keywords": [
+    "progress",
+    "tracker",
+    "multi",
+    "step",
+    "multi-step",
+    "stage",
+    "multi-stage",
+    "sass",
+    "stepper"
+  ],
+  "engines": {
+    "node": ">=4"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "Firefox ESR"
+  ],
+  "devDependencies": {
+    "autoprefixer": "^9.4.4",
+    "browser-sync": "^2.26.5",
+    "del": "^3.0.0",
+    "gulp": "^4.0.0",
+    "gulp-cli": "^2.0.1",
+    "gulp-load-plugins": "^1.6.0",
+    "gulp-plumber": "^1.0.1",
+    "gulp-postcss": "^8.0.0",
+    "gulp-sass": "^4.0.2",
+    "gulp-sourcemaps": "^2.2.0"
+  },
+  "scripts": {
+    "start": "gulp serve",
+    "build": "gulp"
+  }
+}
