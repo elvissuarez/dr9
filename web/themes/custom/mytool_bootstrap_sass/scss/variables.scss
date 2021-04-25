@@ -15,6 +15,7 @@ $yellow: #ffc107;
 $green: #28a745;
 $cyan: #17a2b8;
 $white: #fff;
+$black: #2a2a2a;
 $gray-100: #f8f9fa;
 $gray-800: #343a40;
 $theme-colors: ( primary: $accent-shade, secondary: $primary-shade, success: $green, info: $cyan, warning: $yellow, danger: $red, light: $gray-100, dark: $gray-800);
@@ -35,9 +36,9 @@ $inverse-color: $white;
 //
 // Style anchor elements.
 // $link-color: $accent-shade;
-$link-color: $white;
+$link-color: $black;
 $link-decoration: none;
-$link-hover-color: #f2f2f2;
+$link-hover-color: #000000;
 $link-hover-decoration: underline;
 // Comments
 $comment-spacer-x: 1.25em;
@@ -50,6 +51,7 @@ $enable-gradients: false;
 // Mytool Variables
 $mytool-bar: #2b323f;
 $main-bussiness-color: #E0791C;
+$main-bussiness-color-second: #f7a055;
 $main-bussiness-color-dark: #985213;
 $main-bussiness-color-ligth: #e0c81c;
 $filters-font-color: #2b323f;

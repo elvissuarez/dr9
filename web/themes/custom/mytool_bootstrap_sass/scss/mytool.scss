@@ -12,6 +12,125 @@ Description: Bootstrap 4 with Sass
 body {
   background: $body-bg;
 }
+h1{
+  font-size: 30px;
+  color: $main-bussiness-color;
+}
+.product-header-section{
+  background-color: $footer-background-color;
+  color: $main-bussiness-color;
+  text-transform: uppercase;
+  padding: 10px 15px;
+  font-weight: 600;
+  margin-top: 20px;
+  font-size: 15px;
+}
+.product-body-section{
+  padding: 10px 15px;
+  font-size: 14px;
+}
+.flex-direction-nav a {
+  height: 46px;
+}
+.field--type-commerce-price{
+  font-weight: 600;
+  font-size: 20px;
+  margin-bottom: 15px;
+}
+.commerce-order-item-variation-cart-form-form{
+  .field--name-quantity{
+    padding: 15px;
+    border: none;
+    border-top: $border-style;
+    border-bottom: $border-style;
+    text-align: right;
+    .form-group{
+      display: flex;
+      justify-content: flex-end;
+      margin: 0;
+      label{
+        color: black;
+        margin: 0 10px 0 0;
+        padding: 0;
+        display: flex;
+        align-items: center;
+      }
+      input{
+        max-width: 100px;
+        text-align: right;
+      }
+    }
+  }
+  #edit-submit{
+    width: 100%;
+    color: white;
+    background-color: $main-bussiness-color;
+    border-color: $main-bussiness-color;
+    &:hover{
+      background-color: $main-bussiness-color-second;
+    }
+  }
+}
+.delivery-time{
+  .field__label{
+    font-weight: 600;
+    &::after{
+      content: ": ";
+    }
+  }
+}
+.main-content[role=main]{
+  a{
+    color: black;
+    text-decoration: none;
+    &:hover{
+      color: $main-bussiness-color;
+      text-decoration: none;
+    }
+  }
+}
+.order-total-line-value{
+  width: 200px;
+}
+.order-total-line{
+  padding: 0 15px;
+}
+a.link--previous{
+  border: 1px solid transparent;
+  padding: 0.375rem 0.75rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  border-radius: 0.25rem;
+  border: 1px solid transparent;
+  &:link{
+    background-color: #f44336;
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+  }
+  &:visited{
+    background-color: #f44336;
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+  }
+  &:hover{
+    background-color: red;
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+  }
+  &:active{
+    background-color: red;
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+  }
+}
 .brand-image{
   .row{
     padding: 0;
@@ -41,6 +160,12 @@ body {
     min-height: 50px;
     margin-bottom: 20px;
     border: 1px solid transparent;
+    a{
+      color: white;
+      &:hover{
+        color: $gray-100;
+      }
+    }
   }
     // max-width: 1400px;
     // @include double-extra-large{
@@ -79,7 +204,7 @@ body {
   // display: flex;
   // justify-content: flex-end;
   .cart-block-summary {
-    // padding: 1rem;
+    display: flex;
     .cart-block-summary--text {
       background-color: $main-bussiness-color;
       padding: 0 10px;
@@ -441,5 +566,31 @@ body {
         font-weight: 600;
       }
     }
+  }
+}
+.search-box[role=search]{
+  max-width: 100%;
+  .views-exposed-form{
+    max-width: 100%;
+    .search-filters{
+      justify-content: center;
+    }
+    .js-form-item{
+      display: none;
+    }
+    .form-item-query{
+      display: block;
+      max-width: 80%;
+      min-width: 300px;
+      input{
+        max-width: 100%;
+      }
+    }
+  }
+}
+.views-slideshow-controls-bottom .views-slideshow-pager-bullets li{
+  background-color: #aaa;
+  &.active{
+    background-color: #222;
   }
 }

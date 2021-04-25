@@ -30,3 +30,23 @@ function mytool_bootstrap_sass_form_system_theme_settings_alter(&$form, FormStat
     'bg-transparent' => t('Transparent'),
   );
 }
+/**
+ * @param $suggestions
+ * @param array $variables
+ */
+function mytool_bootstrap_sass_theme_suggestions_input_alter(&$suggestions, array $variables) {
+  $element = $variables['element'];
+  if (isset($element['#attributes']['data-twig-suggestion'])) {
+    $suggestions[] = 'input__' . $element['#type'] . '__' . $element['#attributes']['data-twig-suggestion'];
+  }
+}
+
+/**
+ * @param $form
+ * @param \Drupal\Core\Form\FormStateInterface $form_state
+ * @param $form_id
+ */
+function mytool_bootstrap_sass_form_views_exposed_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  $form['actions']['submit']['#attributes']['data-twig-suggestion'] = 'views_exposed_form';
+  $form['actions']['submit']['#attributes']['class'][] = 'search_box__button';
+}

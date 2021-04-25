@@ -31,6 +31,7 @@ use Symfony\Component\HttpFoundation\Request;
  *     "offsite-payment" = "Drupal\commerce_payu_webcheckout\PluginForm\PayuWebcheckoutPaymentForm",
  *   },
  *   payment_type = "payment_manual",
+ *   requires_billing_information = TRUE,
  * )
  */
 class PayuWebcheckout extends OffsitePaymentGatewayBase implements ContainerFactoryPluginInterface {
@@ -203,6 +204,7 @@ class PayuWebcheckout extends OffsitePaymentGatewayBase implements ContainerFact
       'payu_merchant_id' => self::TEST_MERCHANT_ID,
       'payu_account_id' => self::TEST_ACCOUNT_ID,
       'payu_gateway_url' => self::TEST_GATEWAY_URL,
+      'collect_billing_information' => FALSE,
     ];
   }
 
@@ -234,6 +236,15 @@ class PayuWebcheckout extends OffsitePaymentGatewayBase implements ContainerFact
       '#required' => TRUE,
       '#default_value' => $this->configuration['purchase_description'],
       '#maxlength' => 253,
+    ];
+    $form['collect_billing_information'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Collect billing information'),
+      '#description' => $this->t('Before disabling, make sure you are not legally required to collect billing information.'),
+      '#default_value' => $this->configuration['collect_billing_information'],
+      // Merchants can disable collecting billing information only if the
+      // payment gateway indicated that it doesn't require it.
+      '#access' => $this->pluginDefinition['requires_billing_information'],
     ];
     $form['payu_api_key'] = [
       '#type' => 'textfield',
@@ -289,6 +300,7 @@ class PayuWebcheckout extends OffsitePaymentGatewayBase implements ContainerFact
     $this->configuration['payu_merchant_id'] = $values['payu_merchant_id'];
     $this->configuration['payu_account_id'] = $values['payu_account_id'];
     $this->configuration['payu_gateway_url'] = $values['payu_gateway_url'];
+    $this->configuration['collect_billing_information'] = $values['collect_billing_information'];
   }
 
 }

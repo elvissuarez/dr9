@@ -11,3 +11,18 @@ global-styling:
   dependencies:
     - core/jquery
     - core/drupal
+
+# Mytool library productos
+tools-slider:
+  version: 1.x
+  css:
+    theme:
+      # css/slider.css: {}
+  js:
+    js/jquery.elevatezoom.js: {}
+    js/slider.js: {}
+    js/flex.js: {}
+  dependencies:
+    - core/jquery
+    - core/jquery.once
+    - core/drupal

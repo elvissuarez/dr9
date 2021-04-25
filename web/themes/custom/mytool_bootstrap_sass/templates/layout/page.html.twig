@@ -80,7 +80,7 @@
   <div class="navbar-top navbar-light  d-sm-block bg2">
     <div class="container top-container">
       <div class="row align-items-center justify-content-center">
-        <div class="col-md-3 col-lg-3 col-sm-3 col-xs-3 top-container__item brand-image">
+        <div class="col-md-3 top-container__item brand-image">
           <!-- BRAND HEADER -->
             {% if page.brand_header %}
               {% block brand_header %}
@@ -93,12 +93,12 @@
             {% endif %}
           <!-- END BRAND HEADER -->
         </div>
-        <div class="col-md-6 col-lg-6 col-sm-6 col-xs-6 top-container__item">
+        <div class="col-md-6 top-container__item">
           <!-- SEARCH BOX -->
             {% if page.search %}
               {% block search %}
                 <div class="row justify-content-center my-auto">
-                  <div class="search-box" role="search">
+                  <div class="search-box col-12" role="search">
                     {{ page.search }}
                   </div>
                 </div>
@@ -106,7 +106,7 @@
             {% endif %}
           <!-- END SEARCH BOX -->
         </div>
-        <div class="col-md-3 col-lg-3 col-sm-3 col-xs-3 top-container__item">
+        <div class="col-md-3 top-container__item">
             <!-- BUSSINESS BOX -->
             {% if page.bussiness %}
               {% block bussiness %}
