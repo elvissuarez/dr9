@@ -1,0 +1,31 @@
+{#
+/**
+ * @file
+ * Default theme implementation to display the commerce_variation_cart_form.
+ *
+ * Available variables:
+ * - form: The form itself.
+ * - product: The parent product entity. This is the fully loaded instance.
+ * - variation: The current product variation entity.
+ * - order_item: The order item that will be processed.
+ * - view_mode: Single string that tell us which view mode is being used.
+ * - active: Boolean indicating whether the variation is active.
+ *
+ * @ingroup themeable
+ */
+#}
+
+{%
+  set classes = [
+    'commerce-variation-cart-form',
+    view_mode ? view_mode|clean_class,
+    active ? 'active' : 'disabled'
+  ]
+%}
+{% if active %}
+  {{ form }}
+{% else %}
+  <div {{ attributes.addClass(classes) }}>
+    {{ 'This product is unavailable'|t }}
+  </div>
+{%  endif %}

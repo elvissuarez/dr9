@@ -1,0 +1,58 @@
+{#
+/**
+ * @file
+ *
+ * Product template example.
+ * Change layout moving singular field
+ *
+ * Available variables:
+ * - attributes: HTML attributes for the wrapper.
+ * - product: The rendered product fields.
+ *   Use 'product' to print them all, or print a subset such as
+ *   'product.title'. Use the following code to exclude the
+ *   printing of a given field:
+ *   @code
+ *   {{ product|without('title') }}
+ *   @endcode
+ * - product_entity: The product entity.
+ * - product_url: The product URL.
+ *
+ * @ingroup themeable
+ */
+#}
+<article{{ attributes }}>
+  <div class="row product-page">
+    <div class="col-md-6 product-images-conteiner">
+      {{ product.variation_field_imagen_producto }}
+    </div>
+    <div class="col-md-6 product-details-container">
+      <div class="top">
+          {{ product.field_marca }}
+          <h1>{{ product.variation_title }}</h1>
+      </div>
+      <div class="variation-prices">
+        {{ product.variation_price }}
+        {{ product.variation_commerce_variation_cart_form }}
+      </div>
+      {% if product.field_tiempo_de_entrega|render %}
+      <div class="delivery-time">
+        {{product.field_tiempo_de_entrega}}
+      </div>
+      {% endif %}
+    </div>
+    <div class="col-md-12">
+      <h2 class="product-header-section">Descripción</h2>
+      <div class="product-body-section">
+          {{ product.body }}
+      </div>
+    </div>
+        {% if product.field_especificaciones|render %}
+    <div class="col-md-12">
+      <h3 class="product-header-section">Especificaciones Técnicas</h3>
+      <div class="product-body-section product-specifications">
+          {{ product.field_especificaciones }}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</article>
