@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "098eaca0d55c07365deb3bc31e938870",
+    "content-hash": "49f75d03b0c5b9e4c5eb7871b6c9c97d",
     "packages": [
         {
             "name": "algolia/places",
@@ -2075,6 +2075,58 @@
             "homepage": "http://drupal.org/project/commerce",
             "support": {
                 "source": "https://git.drupalcode.org/project/commerce"
+            }
+        },
+        {
+            "name": "drupal/commerce_add_to_cart_link",
+            "version": "2.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://git.drupalcode.org/project/commerce_add_to_cart_link.git",
+                "reference": "2.0.0"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://ftp.drupal.org/files/projects/commerce_add_to_cart_link-2.0.0.zip",
+                "reference": "2.0.0",
+                "shasum": "94418deb7959f12968f023409af1bf38f4bd7742"
+            },
+            "require": {
+                "drupal/commerce": "~2.11",
+                "drupal/commerce_cart": "*",
+                "drupal/commerce_product": "*",
+                "drupal/core": "^8.8.3 || ^9"
+            },
+            "require-dev": {
+                "drupal/commerce_wishlist": "*"
+            },
+            "type": "drupal-module",
+            "extra": {
+                "drupal": {
+                    "version": "2.0.0",
+                    "datestamp": "1600361910",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
+                }
+            },
+            "notification-url": "https://packages.drupal.org/8/downloads",
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "Mag. Andreas Mayr (agoradesign)",
+                    "homepage": "https://www.drupal.org/u/agoradesign",
+                    "role": "Maintainer"
+                }
+            ],
+            "description": "Provides a field formatter for Commerce product variations having an add to cart link instead of a form.",
+            "homepage": "https://www.drupal.org/project/commerce_add_to_cart_link",
+            "support": {
+                "source": "https://git.drupalcode.org/project/commerce_add_to_cart_link",
+                "issues": "https://drupal.org/project/issues/commerce_add_to_cart_link"
             }
         },
         {
