@@ -8,7 +8,7 @@ dependencies:
   - drupal:filter
   - drupal:system (>=8.8)
 
-# Information added by Drupal.org packaging script on 2020-10-23
-version: '8.x-3.6'
+# Information added by Drupal.org packaging script on 2021-05-16
+version: '8.x-3.9'
 project: 'lazy'
-datestamp: 1603427242
+datestamp: 1621197593

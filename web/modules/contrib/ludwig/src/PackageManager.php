@@ -187,12 +187,12 @@ class PackageManager implements PackageManagerInterface {
             $packages[$package_name] = array_merge($package_base, $package_append);
           }
           else {
-            // The unknown library type.
+            // The library without the autoload section.
             $package_append = [
               'namespace' => '',
               'paths' => [],
               'installed' => TRUE,
-              'resource' => 'unknown',
+              'resource' => 'inactive',
             ];
             $packages[$package_name] = array_merge($package_base, $package_append);
           }

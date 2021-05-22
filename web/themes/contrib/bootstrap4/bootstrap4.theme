@@ -46,6 +46,8 @@ function bootstrap4_preprocess_menu_local_tasks(&$variables) {
  * Implements hook_preprocess_HOOK() for menu-local-task templates.
  */
 function bootstrap4_preprocess_menu_local_task(&$variables) {
+  $variables['attributes']['class'][] = 'list-group-item';
+
   // Ensure is-active class is set when the tab is active. The generic active
   // link handler applies stricter comparison rules than what is necessary for
   // tabs.
@@ -96,10 +98,19 @@ function bootstrap4_form_system_theme_settings_alter(&$form, FormStateInterface 
     'dark' => 'dark',
   ];
 
+  // Populating options for top container.
   $options_top_container = [
     'container' => 'fixed',
     'container-fluid m-0 p-0' => 'fluid',
   ];
+
+  // Populating extra options for top container.
+  foreach (explode("\n", theme_get_setting('b4_top_container_config')) as $line) {
+    $values = explode("|", trim($line));
+    if (is_array($values) && (count($values) == 2)) {
+      $options_top_container += [trim($values[0]) => trim($values[1])];
+    }
+  }
 
   $form['body_details'] = [
     '#type' => 'details',
@@ -114,6 +125,13 @@ function bootstrap4_form_system_theme_settings_alter(&$form, FormStateInterface 
     '#default_value' => theme_get_setting('b4_top_container'),
     '#description' => t("Type of top level container: fluid (eg edge to edge) or fixed width"),
     '#options' => $options_top_container,
+  ];
+
+  $form['body_details']['b4_top_container_config'] = [
+    '#type' => 'textarea',
+    '#title' => t('Website container type configuration'),
+    '#default_value' => theme_get_setting('b4_top_container_config'),
+    '#description' => t("Format: <classes|label> on each line, e.g. <br><pre>container|fixed<br />container-fluid m-0 p-0|fluid</pre>"),
   ];
 
   $form['body_details']['b4_body_schema'] = [
@@ -380,4 +398,36 @@ function bootstrap4_preprocess_html(&$variables) {
   // Body colour theme.
   $variables['b4_body_schema'] = theme_get_setting('b4_body_schema');
   $variables['b4_body_bg_schema'] = theme_get_setting('b4_body_bg_schema');
+}
+
+/**
+ * Implements theme_preprocess_table().
+ */
+function bootstrap4_preprocess_table(&$variables) {
+  $variables['attributes']['class'][] = 'table';
+  $variables['attributes']['class'][] = 'table-striped';
+  $variables['attributes']['class'][] = 'table-hover';
+}
+
+/**
+ * Implements theme_preprocess_views_ui_views_listing_table().
+ */
+function bootstrap4_preprocess_views_ui_views_listing_table(&$variables) {
+  bootstrap4_preprocess_table($variables);
+}
+
+/**
+ * Implements theme_preprocess_views_ui_display_tab_setting().
+ */
+function bootstrap4_preprocess_views_ui_display_tab_setting(&$variables) {
+  //dump($variables);
+  $variables['attributes']['class'][] = 'my-1';
+}
+
+/**
+ * Implements theme_preprocess_views_ui_display_tab_bucket().
+ */
+function bootstrap4_preprocess_views_ui_display_tab_bucket(&$variables) {
+  //dump($variables);
+  $variables['attributes']['class'][] = 'my-2';
 }

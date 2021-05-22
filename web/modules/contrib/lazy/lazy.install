@@ -5,6 +5,8 @@
  * Install, update, and uninstall functions for the Lazy-load module.
  */
 
+use Drupal\Component\Serialization\Json;
+
 /**
  * Implements hook_requirements().
  */
@@ -13,23 +15,41 @@ function lazy_requirements($phase) {
     return [];
   }
 
-  $library = Drupal::service('library.discovery')->getLibraryByName('lazy', 'lazysizes');
-  $library_exists = FALSE;
+  $settings = \Drupal::config('lazy.settings');
+  $library_path = $settings->get('libraryPath');
+  $library_js = $settings->get('minified') ? '/lazysizes.min.js' : '/lazysizes.js';
 
-  foreach ($library['js'] as $js) {
-    if (strpos($js['data'], 'lazysizes.min.js') !== FALSE) {
-      $library_exists = file_exists(DRUPAL_ROOT . '/' . $js['data']);
+  $requirements['lazy_lazysizes'] = [
+    'title' => t('lazySizes library'),
+    'description' => t('<p>The lazySizes library needs to be installed at the <kbd>@path</kbd> folder in your Drupal installation directory.</p><p>If you <a href=":packagist">manage assets via Composer</a>, you can use <kbd>composer require bower-asset/lazysizes</kbd> to download the library.</p><p>If you <a href=":url">manually download the library</a>, make sure the folder name is <em>lazysizes</em>.</p>', [
+      '@path' => $library_path,
+      ':url' => 'https://github.com/aFarkas/lazysizes/releases/latest',
+      ':packagist' => 'https://asset-packagist.org/',
+    ]),
+    'severity' => REQUIREMENT_ERROR,
+  ];
+
+  if (file_exists(DRUPAL_ROOT . $library_path . $library_js)) {
+    $requirements['lazy_lazysizes']['severity'] = REQUIREMENT_OK;
+    $requirements['lazy_lazysizes']['description'] = t('The lazySizes library is installed at <kbd>@path</kbd>', [
+      '@path' => $library_path . $library_js,
+    ]);
+
+    if ($package_json = @file_get_contents(DRUPAL_ROOT . $library_path . '/package.json')) {
+      $package_json = JSON::decode($package_json);
+      if (isset($package_json['version'])) {
+        $requirements['lazy_lazysizes']['value'] = $package_json['version'];
+      }
     }
   }
+  elseif (in_array(parse_url($library_path, PHP_URL_SCHEME), ['http', 'https'])) {
+    $requirements['lazy_lazysizes']['severity'] = REQUIREMENT_OK;
+    $requirements['lazy_lazysizes']['description'] = t('The lazySizes library is loaded from an external site, make sure it is a trusted source: <a href=":cdn" rel="noreferrer">:cdn</a>', [
+      ':cdn' => $library_path . $library_js,
+    ]);
+  }
 
-  return [
-    'lazy_lazysizes' => [
-      'title' => t('Lazysizes library'),
-      'value' => $library_exists ? $library['version'] : t('Not installed'),
-      'description' => $library_exists ? '' : t('The Lazysizes library needs to be <a href="@url">downloaded</a> and extracted into the /libraries/lazysizes folder in your Drupal installation directory.', ['@url' => 'https://github.com/aFarkas/lazysizes/archive/5.1.1.zip']),
-      'severity' => $library_exists ? REQUIREMENT_OK : REQUIREMENT_ERROR,
-    ],
-  ];
+  return $requirements;
 }
 
 /**
@@ -79,7 +99,7 @@ function lazy_update_8301() {
 function lazy__update_migrate_config() {
   $config = \Drupal::configFactory()->getEditable('lazy.settings');
 
-  // Add defaults for the new lazysizes library.
+  // Add defaults for the new lazySizes library.
   if (empty($config->get('lazysizes'))) {
     $lazysizes = [
       'lazyClass' => 'lazyload',
@@ -109,7 +129,7 @@ function lazy__update_migrate_config() {
   $selector = $config->get('selector') ?: $config->get('lazysizes.lazyClass');
   $errorClass = $config->get('errorClass') ?: $config->get('lazysizes.errorClass');
   $src = $config->get('src') ?: $config->get('lazysizes.srcAttr');
-  $image_fields = $config->get('image_fields');
+  $image_fields = (array) $config->get('image_fields');
 
   $image_fields_updated = [];
   foreach ($image_fields as $image_field => $bool) {
@@ -118,7 +138,7 @@ function lazy__update_migrate_config() {
     $image_fields_updated[$key] = TRUE;
   }
 
-  $alter_tag = $config->get('alter_tag');
+  $alter_tag = (array) $config->get('alter_tag');
   foreach ($alter_tag as $key => $value) {
     $alter_tag[$key] = (string) $value;
   }
@@ -165,4 +185,79 @@ function lazy_update_8303() {
   return t('The new "preferNative" option is added, and set to %status.', [
     '%status' => $preferNative ? 'enabled' : 'disabled',
   ]);
+}
+
+/**
+ * Remove "formatters" settings from the Lazy configuration.
+ *
+ * Now both "Image (Lazy-load)" and "Responsive image (Lazy-load)" image-
+ * formatters are enabled at all times, as long as the core's "Image" and
+ * "Responsive image" modules, respectively, are also enabled.
+ */
+function lazy_update_8304() {
+  $config = \Drupal::configFactory()->getEditable('lazy.settings');
+  $config->clear('formatters')->save(TRUE);
+}
+
+/**
+ * Set lazySizes library path default.
+ */
+function lazy_update_8305() {
+  $config = \Drupal::configFactory()->getEditable('lazy.settings');
+  $config->set('libraryPath', '/libraries/lazysizes')->save(TRUE);
+}
+
+/**
+ * Update all lazy-loading enabled text-formats with carried-over settings.
+ */
+function lazy_update_8306() {
+  $configFactory = \Drupal::configFactory();
+
+  $migration_settings = [];
+  $config = $configFactory->getEditable('lazy.settings');
+  $alter_tag = $config->get('alter_tag');
+  foreach ($alter_tag as $tag => $status) {
+    $key = ($tag === 'img') ? 'image' : $tag;
+    $migration_settings[$key] = (bool) $alter_tag[$tag];
+  }
+
+  foreach (filter_formats() as $key => $filter) {
+    $filter_configuration = $filter->filters()->getConfiguration();
+    if (isset($filter_configuration['lazy_filter'])) {
+      $format_settings = $configFactory->getEditable("filter.format.${key}");
+      $format_settings
+        ->set('filters.lazy_filter.settings', $migration_settings)
+        ->save(TRUE);
+    }
+  }
+
+  $config
+    ->clear('image_fields')
+    ->clear('alter_tag')
+    ->save(TRUE);
+}
+
+/**
+ * Enable new configuration with default value `minified = TRUE`.
+ */
+function lazy_update_8307() {
+  $config = \Drupal::configFactory()->getEditable('lazy.settings');
+  $config->set('minified', TRUE)->save(TRUE);
+}
+
+/**
+ * Migrate "disabled paths" into new "visibility" setting.
+ */
+function lazy_update_8308() {
+  $config = \Drupal::configFactory()->getEditable('lazy.settings');
+  $disabled_paths = $config->get('disabled_paths');
+  $config
+    ->set('disable_admin', TRUE)
+    ->set('visibility', [
+      'id' => 'request_path',
+      'pages' => $disabled_paths,
+      'negate' => 0,
+    ])
+    ->clear('disabled_paths')
+    ->save(TRUE);
 }

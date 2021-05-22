@@ -2,27 +2,24 @@
 
 namespace Drupal\lazy\Form;
 
+use Drupal\Component\Serialization\Json;
+use Drupal\Core\Condition\ConditionManager;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Messenger\MessengerInterface;
+use Drupal\Core\Render\Markup;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
-use Drupal\lazy\Lazy;
+use Drupal\lazy\LazyInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Drupal\Core\Extension\ModuleHandler;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 
 /**
  * Configure Lazy settings for this site.
  */
 class LazyForm extends ConfigFormBase {
-
-  /**
-   * The configuration factory.
-   *
-   * @var \Drupal\Core\Config\ConfigFactoryInterface
-   */
-  protected $configFactory;
 
   /**
    * The Lazy-load service.
@@ -39,19 +36,37 @@ class LazyForm extends ConfigFormBase {
   protected $moduleHandler;
 
   /**
+   * The condition plugin manager.
+   *
+   * @var \Drupal\Core\Condition\ConditionManager
+   */
+  protected $conditionManager;
+
+
+  /**
+   * The 'request_path' condition.
+   *
+   * @var \Drupal\system\Plugin\Condition\RequestPath
+   */
+  protected $condition;
+
+  /**
    * Constructs a LazyForm object.
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The configuration factory.
-   * @param \Drupal\lazy\Lazy $lazy_load
+   * @param \Drupal\lazy\LazyInterface $lazy_load
    *   The Lazy-load service.
-   * @param \Drupal\Core\Extension\ModuleHandler $module_handler
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler.
+   * @param \Drupal\Core\Condition\ConditionManager $condition_manager
+   *   The condition plugin manager.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, Lazy $lazy_load, ModuleHandler $module_handler) {
+  public function __construct(ConfigFactoryInterface $config_factory, LazyInterface $lazy_load, ModuleHandlerInterface $module_handler, ConditionManager $condition_manager) {
     parent::__construct($config_factory);
     $this->lazyLoad = $lazy_load;
     $this->moduleHandler = $module_handler;
+    $this->condition = $condition_manager->createInstance('request_path');
   }
 
   /**
@@ -67,7 +82,8 @@ class LazyForm extends ConfigFormBase {
     return new static(
       $container->get('config.factory'),
       $container->get('lazy'),
-      $container->get('module_handler')
+      $container->get('module_handler'),
+      $container->get('plugin.manager.condition')
     );
   }
 
@@ -87,40 +103,51 @@ class LazyForm extends ConfigFormBase {
 
   /**
    * Builds the status report for all enabled filter formats & field formatters.
-   *
-   * @param array $fields
-   *   List of all enabled filter formats, and field formatters.
    */
-  protected function getEnabledFiltersAndFields(array $fields) {
+  protected function getEnabledFiltersAndFields(): void {
     $links = [];
-    $anchor_links = [
-      'filter' => [],
-      'field' => [],
-    ];
 
+    // Build links of text-formats.
     foreach (filter_formats() as $key => $filter) {
       if (
         $filter->status()
-        && isset($filter->getDependencies()['module'])
-        && in_array('lazy', $filter->getDependencies()['module'], TRUE)
+        && ($filter_configuration = $filter->filters()->getConfiguration())
+        && isset($filter_configuration['lazy_filter']['status'])
+        && $filter_configuration['lazy_filter']['status']
       ) {
-        $links['filter'][$filter->id()] = Link::createFromRoute(
-          $filter->label(), 'entity.filter_format.edit_form', [
+        $tags = $filter_configuration['lazy_filter']['settings'];
+        $label = '';
+        if ($tags['image'] && $tags['iframe']) {
+          $label = $this->t('(Images and IFrames)');
+        }
+        elseif ($tags['image']) {
+          $label = $this->t('(Images only)');
+        }
+        elseif ($tags['iframe']) {
+          $label = $this->t('(IFrames only)');
+        }
+
+        $links['filter'][$filter->id()] = [
+          'title' => $filter->label() . ' ' . $label,
+          'url' => Url::fromRoute('entity.filter_format.edit_form', [
             'filter_format' => $filter->id(),
           ], [
             'query' => [
               'destination' => Url::fromRoute('lazy.config_form')->toString(),
             ],
-          ]);
+          ]),
+        ];
       }
     }
 
-    $image_fields = is_array($fields) ? $fields : [];
-    $entity_type = $entity_bundle = $field_name = $view_mode = '';
-    foreach ($image_fields as $tag => $option) {
-      if ($image_fields[$tag]) {
-        list($entity_type, $entity_bundle, $field_name, $view_mode) = explode('--', $tag);
-        if (($entity_type !== NULL) && ($entity_bundle !== NULL)) {
+    // Build links for fields.
+    $config_keys = $this->configFactory()->listAll('core.entity_view_display.');
+    foreach ($config_keys as $config_key) {
+      $entity_view_display = $this->config($config_key);
+      $content = $entity_view_display->get('content');
+      $entity_type = $entity_view_display->get('targetEntityType');
+      foreach ($content as $field_name => $field) {
+        if (isset($field['third_party_settings']['lazy']['lazy_image']) && ($field['third_party_settings']['lazy']['lazy_image'] == TRUE)) {
           if ($entity_type === 'paragraph') {
             $key = 'paragraphs_type';
           }
@@ -133,38 +160,65 @@ class LazyForm extends ConfigFormBase {
           else {
             $key = "${entity_type}_type";
           }
-          $links['field'][$tag] = Link::createFromRoute(
-            "${entity_bundle}.${field_name} (${view_mode})",
-            "entity.entity_view_display.$entity_type.view_mode", [
-              $key => $entity_bundle,
-              'view_mode_name' => $view_mode,
-            ]);
+
+          $entity_mode = $entity_view_display->get('mode');
+          $entity_bundle = $entity_view_display->get('bundle');
+          $field_name_and_mode = "${field_name}-${entity_mode}";
+          $link_text = "${entity_type}.${entity_bundle}.${field_name}.${entity_mode}";
+
+          $links['field'][$field_name_and_mode] = [
+            'title' => $link_text,
+            'url' => Url::fromRoute("entity.entity_view_display.${entity_type}.view_mode",
+              [
+                $key => $entity_bundle,
+                'view_mode_name' => $entity_mode,
+              ],
+              [
+                'query' => [
+                  'destination' => Url::fromRoute('lazy.config_form')->toString(),
+                ],
+              ]
+            ),
+          ];
         }
       }
     }
 
-    foreach ($links as $key => $link_group) {
-      foreach ($link_group as $link) {
-        $anchor_links[$key][] = $link->toString();
+    // Display a message listing all text-formats have lazy-loading enabled.
+    $this->addLazyStatusMessage($links, 'filter', $this->t('The <strong>text-formats</strong> have lazy-loading enabled:'));
+    // Display a message listing all fields have lazy-loading enabled.
+    $this->addLazyStatusMessage($links, 'field', $this->t('The <strong>fields</strong> have lazy-loading enabled:'));
+  }
+
+  /**
+   * Add a informative message.
+   *
+   * @param array $links
+   *   The array of links.
+   * @param string $type
+   *   Can be 'filters' or 'fields'.
+   * @param \Drupal\Core\StringTranslation\TranslatableMarkup $message
+   *   The message.
+   */
+  private function addLazyStatusMessage(array $links, string $type, TranslatableMarkup $message): void {
+    $links_result = 'none';
+    $message_type = MessengerInterface::TYPE_WARNING;
+
+    if (!empty($links[$type]) && count($links[$type])) {
+      $links_result = [];
+      foreach ($links[$type] as $link) {
+        $links_result[] = Link::fromTextAndUrl(
+          $link['title'],
+          $link['url']
+        )->toString();
       }
+      $links_result = implode(', ', $links_result);
+      $message_type = MessengerInterface::TYPE_STATUS;
     }
 
-    $filter_links_result = (count($anchor_links['filter'])) ? implode(', ', $anchor_links['filter']) : 'none';
-    $filter_message_type = ($filter_links_result === 'none')
-      ? MessengerInterface::TYPE_WARNING
-      : MessengerInterface::TYPE_STATUS;
     $this->messenger()->addMessage(
-      $this->t("The <strong>text-formats</strong> have lazy-loading enabled: ${filter_links_result}"),
-      $filter_message_type
-    );
-
-    $field_links_result = (count($anchor_links['field'])) ? implode(', ', $anchor_links['field']) : 'none';
-    $field_message_type = ($field_links_result === 'none')
-      ? MessengerInterface::TYPE_WARNING
-      : MessengerInterface::TYPE_STATUS;
-    $this->messenger()->addMessage(
-      $this->t("The <strong>fields</strong> have lazy-loading enabled: ${field_links_result}"),
-      $field_message_type
+      Markup::create($message . ' ' . $links_result),
+      $message_type
     );
   }
 
@@ -172,10 +226,9 @@ class LazyForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
-    $config = $this->config('lazy.settings');
+    $lazy_settings = $this->config('lazy.settings');
 
-    $image_fields = is_array($config->get('image_fields')) ? $config->get('image_fields') : [];
-    $this->getEnabledFiltersAndFields($image_fields);
+    $this->getEnabledFiltersAndFields();
 
     $form['preview'] = [
       '#type' => 'details',
@@ -208,39 +261,6 @@ class LazyForm extends ConfigFormBase {
       '#title' => $this->t('Settings'),
       '#parents' => ['lazy_tabs'],
     ];
-
-    $form['text_format'] = [
-      '#type' => 'details',
-      '#title' => $this->t('Text-formats only'),
-      '#group' => 'lazy_tabs',
-    ];
-    $form['text_format']['alter_tag'] = [
-      '#type' => 'checkboxes',
-      '#title' => $this->t('Select the inline elements to be lazy-loaded via filter.'),
-      '#description' => $this->t('Only selected tags will be lazy-loaded in activated text-formats.'),
-      '#options' => [
-        'img' => $this->t('Enable for images (%img tags)', ['%img' => '<img>']),
-        'iframe' => $this->t('Enable for iframes (%iframe tags)', ['%iframe' => '<iframe>']),
-      ],
-      '#default_value' => $config->get('alter_tag'),
-    ];
-
-    $form['field'] = [
-      '#type' => 'details',
-      '#title' => $this->t('Fields only'),
-      '#group' => 'lazy_tabs',
-    ];
-    $form['field']['formatters'] = [
-      '#type' => 'checkboxes',
-      '#title' => $this->t('Additional image formatters'),
-      '#description' => $this->t('Lazy-load, by default extends existing compatible image formatters. Additionally these dedicated image formatters can be enabled too.'),
-      '#options' => [
-        'lazy_image' => $this->t('Image (Lazy-load)'),
-        'lazy_responsive_image' => $this->t('Responsive image (Lazy-load)'),
-      ],
-      '#default_value' => $config->get('formatters') ?: [],
-    ];
-
     $form['shared'] = [
       '#type' => 'details',
       '#title' => $this->t('Shared settings'),
@@ -250,14 +270,14 @@ class LazyForm extends ConfigFormBase {
       '#type' => 'checkbox',
       '#title' => $this->t('Prefer native lazy-loading'),
       '#description' => $this->t('If checked and the browser supports, native lazy-loading will be used, otherwise <em>lazysizes</em> library will be used for all browsers.'),
-      '#default_value' => $config->get('preferNative'),
+      '#default_value' => $lazy_settings->get('preferNative'),
       '#required' => FALSE,
     ];
     $form['shared']['skipClass'] = [
       '#type' => 'textfield',
       '#title' => $this->t('skipClass'),
       '#description' => $this->t('Elements having this class name will be ignored.'),
-      '#default_value' => $config->get('skipClass'),
+      '#default_value' => $lazy_settings->get('skipClass'),
       '#size' => 20,
       '#required' => TRUE,
     ];
@@ -267,7 +287,7 @@ class LazyForm extends ConfigFormBase {
       '#description' => $this->t('Suggestion: 1x1 pixels transparent GIF: <code>@code</code>', [
         '@code' => 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==',
       ]),
-      '#default_value' => $config->get('placeholderSrc'),
+      '#default_value' => $lazy_settings->get('placeholderSrc'),
       '#size' => 100,
       '#maxlength' => 255,
       '#required' => FALSE,
@@ -275,32 +295,77 @@ class LazyForm extends ConfigFormBase {
     $form['shared']['cssEffect'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Enable default CSS effect'),
-      '#description' => $this->t('If checked the default CSS transition effect is applied with matching class names.'),
-      '#default_value' => $config->get('cssEffect'),
+      '#description' => $this->t('When it is checked the default CSS transition effect is applied with matching class names.'),
+      '#default_value' => $lazy_settings->get('cssEffect'),
       '#required' => FALSE,
     ];
+    $form['shared']['minified'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Use minified versions.'),
+      '#description' => $this->t('When it is checked the minified versions of the library files are used.'),
+      '#default_value' => $lazy_settings->get('minified'),
+      '#return_value' => 1,
+    ];
+    $js = $lazy_settings->get('minified');
+    if ($js || is_null($js)) {
+      $js = '/lazysizes.min.js';
+    }
+    else {
+      $js = '/lazysizes.js';
+    }
+    $library_path = $lazy_settings->get('libraryPath') ?? '/libraries/lazysizes';
+    $form['shared']['libraryPath'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Lazysizes library path, or URL'),
+      '#description' => $this->t('For most Drupal instances, the path to the <code>lazysizes</code> plugin would be under the <em>libraries</em> folder in the web root. If you need to serve it from a different local path, or even from an external domain you can define it here:<br><br><b>Examples:</b><br>/libraries/lazysizes<br>/profiles/{your_profile}/libraries/lazysizes<br>https://example.com/libraries/lazysizes'),
+      '#field_suffix' => $this->t('<b><a href=":lazysizes">%js</a></b>', [
+        ':lazysizes' => $library_path . $js,
+        '%js' => $js,
+      ]),
+      '#default_value' => $library_path,
+      '#placeholder' => '/libraries/lazysizes',
+      '#required' => TRUE,
+    ];
 
-    $form['request_path'] = [
+    // Set the default condition configuration.
+    $visibility = $lazy_settings->get('visibility') ?? [
+      'id' => 'request_path',
+      'pages' => $lazy_settings->get('disabled_paths') ?? '/rss.xml',
+      'negate' => 0,
+    ];
+    $this->condition->setConfiguration($visibility);
+    $form['visibility'] = [
       '#type' => 'details',
       '#title' => $this->t('Visibility'),
       '#description' => $this->t('This configuration applies to both <em>image fields</em> and <em>inline images/iframes</em> on following pages.'),
       '#group' => 'lazy_tabs',
     ];
-    $form['request_path']['disabled_paths'] = [
-      '#type' => 'textarea',
-      '#title' => $this->t('Disabled paths'),
-      '#default_value' => $config->get('disabled_paths'),
-      '#description' => $this->t("Specify on what pages should lazy-loading disabled. Enter one path per line. The '*' character is a wildcard. An example path is %user-wildcard for every user page. %front is the front page.", [
-        '%user-wildcard' => '/user/*',
-        '%front' => '<front>',
-      ]),
+    $form += $this->condition->buildConfigurationForm($form, $form_state);
+    $form['pages']['#group'] = 'visibility';
+    $form['negate']['#group'] = 'visibility';
+    $form['negate']['#title'] = $this->t('Enable lazy-loading ONLY on specified pages.');
+    $form['negate']['#description'] = $this->t('<p><strong>unchecked</strong> (default): lazy-loading is enabled on ALL pages except the specified pages.</p><p><strong>checked</strong>: lazy-loading is enabled ONLY on the specified pages.</p>');
+
+    $form['visibility']['more'] = [
+      '#type' => 'item',
+      '#title' => $this->t('Additional settings:'),
+      '#markup' => '<hr>',
+      '#weight' => 8,
     ];
-    $form['request_path']['amp'] = [
-      '#markup' => $this->t('Note: Lazy-load is automatically disabled for <a href=":url" title="Accelerated Mobile Pages">AMP</a> (pages with <code>?amp</code> in the query-strings).', [
+    $form['visibility']['disable_admin'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Disable lazy-loading for administration pages.'),
+      '#default_value' => $lazy_settings->get('disable_admin'),
+      '#weight' => 9,
+    ];
+    $form['visibility']['amp'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Automatically disable lazy-loading for <a href=":url" title="Accelerated Mobile Pages">AMP</a> (pages with <code>?amp</code> in the query-strings).', [
         ':url' => 'https://www.drupal.org/project/amp',
       ]),
-      '#prefix' => '<div class="description">',
-      '#suffix' => '</div>',
+      '#default_value' => 1,
+      '#disabled' => TRUE,
+      '#weight' => 10,
       '#access' => $this->moduleHandler->moduleExists('amp'),
     ];
 
@@ -320,70 +385,70 @@ class LazyForm extends ConfigFormBase {
       '#type' => 'textfield',
       '#title' => $this->t('lazyClass'),
       '#description' => $this->t('Marker class for all elements which should be lazy loaded.'),
-      '#default_value' => $config->get('lazysizes.lazyClass'),
+      '#default_value' => $lazy_settings->get('lazysizes.lazyClass'),
       '#required' => TRUE,
     ];
     $form['lazysizes']['lazysizes_loadedClass'] = [
       '#type' => 'textfield',
       '#title' => $this->t('loadedClass'),
       '#description' => $this->t('This class will be added to any element as soon as the image is loaded or the image comes into view. Can be used to add unveil effects or to apply styles.'),
-      '#default_value' => $config->get('lazysizes.loadedClass'),
+      '#default_value' => $lazy_settings->get('lazysizes.loadedClass'),
       '#required' => TRUE,
     ];
     $form['lazysizes']['lazysizes_loadingClass'] = [
       '#type' => 'textfield',
       '#title' => $this->t('loadingClass'),
       '#description' => $this->t('This class will be added to img element as soon as image loading starts. Can be used to add unveil effects.'),
-      '#default_value' => $config->get('lazysizes.loadingClass'),
+      '#default_value' => $lazy_settings->get('lazysizes.loadingClass'),
       '#required' => TRUE,
     ];
     $form['lazysizes']['lazysizes_preloadClass'] = [
       '#type' => 'textfield',
       '#title' => $this->t('preloadClass'),
       '#description' => $this->t('Marker class for elements which should be lazy pre-loaded after onload. Those elements will be even preloaded, if the <code>preloadAfterLoad</code> option is set to <code>false</code>.'),
-      '#default_value' => $config->get('lazysizes.preloadClass'),
+      '#default_value' => $lazy_settings->get('lazysizes.preloadClass'),
       '#required' => TRUE,
     ];
     $form['lazysizes']['lazysizes_errorClass'] = [
       '#type' => 'textfield',
       '#title' => $this->t('errorClass'),
       '#description' => $this->t('The error class if image fails to load'),
-      '#default_value' => $config->get('lazysizes.errorClass'),
+      '#default_value' => $lazy_settings->get('lazysizes.errorClass'),
       '#required' => TRUE,
     ];
     $form['lazysizes']['lazysizes_autosizesClass'] = [
       '#type' => 'textfield',
       '#title' => $this->t('autosizesClass'),
       '#description' => '',
-      '#default_value' => $config->get('lazysizes.autosizesClass'),
+      '#default_value' => $lazy_settings->get('lazysizes.autosizesClass'),
       '#required' => TRUE,
     ];
     $form['lazysizes']['lazysizes_srcAttr'] = [
       '#type' => 'textfield',
       '#title' => $this->t('srcAttr'),
       '#description' => $this->t('The attribute, which should be transformed to <code>src</code>.'),
-      '#default_value' => $config->get('lazysizes.srcAttr'),
+      '#default_value' => $lazy_settings->get('lazysizes.srcAttr'),
       '#required' => TRUE,
     ];
     $form['lazysizes']['lazysizes_srcsetAttr'] = [
       '#type' => 'textfield',
       '#title' => $this->t('srcsetAttr'),
       '#description' => $this->t('The attribute, which should be transformed to <code>srcset</code>.'),
-      '#default_value' => $config->get('lazysizes.srcsetAttr'),
+      '#default_value' => $lazy_settings->get('lazysizes.srcsetAttr'),
       '#required' => TRUE,
     ];
     $form['lazysizes']['lazysizes_sizesAttr'] = [
       '#type' => 'textfield',
       '#title' => $this->t('sizesAttr'),
       '#description' => $this->t('The attribute, which should be transformed to <code>sizes</code>. Makes almost only makes sense with the value <code>"auto"</code>. Otherwise, the <code>sizes</code> attribute should be used directly.'),
-      '#default_value' => $config->get('lazysizes.sizesAttr'),
+      '#default_value' => $lazy_settings->get('lazysizes.sizesAttr'),
       '#required' => TRUE,
     ];
     $form['lazysizes']['lazysizes_minSize'] = [
       '#type' => 'number',
       '#title' => $this->t('minSize'),
       '#description' => $this->t('For <code>data-sizes="auto"</code> feature. The minimum size of an image that is used to calculate the <code>sizes</code> attribute. In case it is under <code>minSize</code> the script traverses up the DOM tree until it finds a parent that is over <code>minSize</code>.'),
-      '#default_value' => $config->get('lazysizes.minSize'),
+      '#default_value' => $lazy_settings->get('lazysizes.minSize'),
       '#required' => TRUE,
       '#attributes' => [
         'min' => 0,
@@ -393,7 +458,7 @@ class LazyForm extends ConfigFormBase {
       '#type' => 'textarea',
       '#title' => $this->t('customMedia'),
       '#description' => $this->t('The <code>customMedia</code> option object is an alias map for different media queries. It can be used to separate/centralize your multiple specific media queries implementation (layout) from the <code>source[media]</code> attribute (content/structure) by creating labeled media queries.'),
-      '#default_value' => json_encode($config->get('lazysizes.customMedia'), JSON_FORCE_OBJECT),
+      '#default_value' => json_encode($lazy_settings->get('lazysizes.customMedia'), JSON_FORCE_OBJECT),
       '#required' => TRUE,
       '#rows' => 1,
     ];
@@ -401,14 +466,14 @@ class LazyForm extends ConfigFormBase {
       '#type' => 'checkbox',
       '#title' => $this->t('init'),
       '#description' => $this->t('By default lazysizes initializes itself, to load in view assets as soon as possible. In the unlikely case you need to setup/configure something with a later script you can set this option to <code>false</code> and call <code>lazySizes.init();</code> later explicitly.'),
-      '#default_value' => $config->get('lazysizes.init'),
+      '#default_value' => $lazy_settings->get('lazysizes.init'),
       '#required' => FALSE,
     ];
     $form['lazysizes']['lazysizes_expFactor'] = [
       '#type' => 'number',
       '#title' => $this->t('expFactor'),
       '#description' => $this->t('The <code>expFactor</code> is used to calculate the "preload expand", by multiplying the normal <code>expand</code> with the <code>expFactor</code> which is used to preload assets while the browser is idling (no important network traffic and no scrolling). (Reasonable values are between <code>1.5</code> and <code>4</code> depending on the <code>expand</code> option).'),
-      '#default_value' => $config->get('lazysizes.expFactor'),
+      '#default_value' => $lazy_settings->get('lazysizes.expFactor'),
       '#required' => TRUE,
       '#min' => 0,
       '#step' => 0.1,
@@ -417,7 +482,7 @@ class LazyForm extends ConfigFormBase {
       '#type' => 'number',
       '#title' => $this->t('hFac'),
       '#description' => $this->t('The <code>hFac</code> (horizontal factor) modifies the horizontal expand by multiplying the <code>expand</code> value with the <code>hFac</code> value. Use case: In case of carousels there is often the wish to make the horizontal expand narrower than the normal vertical expand option. Reasonable values are between 0.4 - 1. In the unlikely case of a horizontal scrolling website also 1 - 1.5.'),
-      '#default_value' => $config->get('lazysizes.hFac'),
+      '#default_value' => $lazy_settings->get('lazysizes.hFac'),
       '#required' => TRUE,
       '#min' => 0,
       '#step' => 0.1,
@@ -426,7 +491,7 @@ class LazyForm extends ConfigFormBase {
       '#type' => 'number',
       '#title' => $this->t('loadMode'),
       '#description' => $this->t("The <code>loadMode</code> can be used to constrain the allowed loading mode. Possible values are 0 = don't load anything, 1 = only load visible elements, 2 = load also very near view elements (<code>expand</code> option) and 3 = load also not so near view elements (<code>expand</code> * <code>expFactor</code> option). This value is automatically set to <code>3</code> after onload. Change this value to <code>1</code> if you (also) optimize for the onload event or change it to <code>3</code> if your onload event is already heavily delayed."),
-      '#default_value' => $config->get('lazysizes.loadMode'),
+      '#default_value' => $lazy_settings->get('lazysizes.loadMode'),
       '#required' => TRUE,
       '#min' => 0,
     ];
@@ -434,14 +499,14 @@ class LazyForm extends ConfigFormBase {
       '#type' => 'checkbox',
       '#title' => $this->t('loadHidden'),
       '#description' => $this->t('Whether to load <code>visibility: hidden</code> elements. Important: lazySizes will load hidden images always delayed. If you want them to be loaded as fast as possible you can use <code>opacity: 0.001</code> but never <code>visibility: hidden</code> or <code>opacity: 0</code>.'),
-      '#default_value' => $config->get('lazysizes.loadHidden'),
+      '#default_value' => $lazy_settings->get('lazysizes.loadHidden'),
       '#required' => FALSE,
     ];
     $form['lazysizes']['lazysizes_ricTimeout'] = [
       '#type' => 'number',
       '#title' => $this->t('ricTimeout'),
       '#description' => $this->t('The timeout option used for the <code>requestIdleCallback</code>. Reasonable values between: 0, 100 - 1000. (Values below 50 disable the <code>requestIdleCallback</code> feature.)'),
-      '#default_value' => $config->get('lazysizes.ricTimeout'),
+      '#default_value' => $lazy_settings->get('lazysizes.ricTimeout'),
       '#required' => TRUE,
       '#min' => 0,
     ];
@@ -449,7 +514,7 @@ class LazyForm extends ConfigFormBase {
       '#type' => 'number',
       '#title' => $this->t('throttleDelay'),
       '#description' => $this->t('The timeout option used to throttle all listeners. Reasonable values between: 66 - 200.'),
-      '#default_value' => $config->get('lazysizes.throttleDelay'),
+      '#default_value' => $lazy_settings->get('lazysizes.throttleDelay'),
       '#required' => TRUE,
       '#min' => 0,
     ];
@@ -463,7 +528,7 @@ class LazyForm extends ConfigFormBase {
         ':code' => 'window.lazySizesConfig',
       ]),
       '#options' => array_combine($plugins, $plugins),
-      '#default_value' => $config->get('lazysizes.plugins'),
+      '#default_value' => $lazy_settings->get('lazysizes.plugins'),
     ];
 
     return parent::buildForm($form, $form_state);
@@ -492,51 +557,53 @@ class LazyForm extends ConfigFormBase {
     if (($custom_media = $form_state->getValue('lazysizes_customMedia')) && !$this->isJson($custom_media)) {
       $form_state->setErrorByName('lazysizes_customMedia', $this->t('Not a valid JavaScript object.'));
     }
+
+    $library_path = $form_state->getValue('libraryPath');
+    if (substr_compare($library_path, '/', 0, 1, TRUE) !== 0 && substr_compare($library_path, 'https://', 0, 8, TRUE) !== 0) {
+      $form_state->setErrorByName('libraryPath', $this->t('The path must either start with <code>/</code> or <code>https://</code>'));
+    }
+    if (substr_compare($library_path, '/', -1, 1, TRUE) === 0) {
+      $form_state->setErrorByName('libraryPath', $this->t('The path must not have a trailing forward slash.'));
+    }
   }
 
   /**
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $alter_tag = $form_state->getValue('alter_tag');
-    foreach ($alter_tag as $key => $value) {
-      $alter_tag[$key] = (string) $value;
-    }
+    $this->condition->submitConfigurationForm($form, $form_state);
 
-    $formatters = $form_state->getValue('formatters');
-    foreach ($formatters as $key => $value) {
-      $formatters[$key] = (string) $value;
-    }
+    $value = $form_state->getValues();
+    $this->configFactory()->getEditable('lazy.settings')
+      ->set('skipClass', $value['skipClass'])
+      ->set('disable_admin', (bool) $value['disable_admin'])
+      ->set('visibility', $this->condition->getConfiguration())
+      ->set('placeholderSrc', $value['placeholderSrc'])
+      ->set('preferNative', (bool) $value['preferNative'])
+      ->set('cssEffect', (bool) $value['cssEffect'])
+      ->set('minified', (bool) $value['minified'])
+      ->set('libraryPath', $value['libraryPath'])
 
-    $this->config('lazy.settings')
-      ->set('alter_tag', $alter_tag)
-      ->set('formatters', $formatters)
-      ->set('skipClass', $form_state->getValue('skipClass'))
-      ->set('disabled_paths', $form_state->getValue('disabled_paths'))
-      ->set('placeholderSrc', $form_state->getValue('placeholderSrc'))
-      ->set('preferNative', (bool) $form_state->getValue('preferNative'))
-      ->set('cssEffect', (bool) $form_state->getValue('cssEffect'))
-
-      ->set('lazysizes.lazyClass', $form_state->getValue('lazysizes_lazyClass'))
-      ->set('lazysizes.loadedClass', $form_state->getValue('lazysizes_loadedClass'))
-      ->set('lazysizes.loadingClass', $form_state->getValue('lazysizes_loadingClass'))
-      ->set('lazysizes.preloadClass', $form_state->getValue('lazysizes_preloadClass'))
-      ->set('lazysizes.errorClass', $form_state->getValue('lazysizes_errorClass'))
-      ->set('lazysizes.autosizesClass', $form_state->getValue('lazysizes_autosizesClass'))
-      ->set('lazysizes.srcAttr', $form_state->getValue('lazysizes_srcAttr'))
-      ->set('lazysizes.srcsetAttr', $form_state->getValue('lazysizes_srcsetAttr'))
-      ->set('lazysizes.sizesAttr', $form_state->getValue('lazysizes_sizesAttr'))
-      ->set('lazysizes.minSize', (int) $form_state->getValue('lazysizes_minSize'))
-      ->set('lazysizes.customMedia', json_decode($form_state->getValue('lazysizes_customMedia'), TRUE))
-      ->set('lazysizes.init', (bool) $form_state->getValue('lazysizes_init'))
-      ->set('lazysizes.expFactor', (float) $form_state->getValue('lazysizes_expFactor'))
-      ->set('lazysizes.hFac', (float) $form_state->getValue('lazysizes_hFac'))
-      ->set('lazysizes.loadMode', (int) $form_state->getValue('lazysizes_loadMode'))
-      ->set('lazysizes.loadHidden', (bool) $form_state->getValue('lazysizes_loadHidden'))
-      ->set('lazysizes.ricTimeout', (int) $form_state->getValue('lazysizes_ricTimeout'))
-      ->set('lazysizes.throttleDelay', (int) $form_state->getValue('lazysizes_throttleDelay'))
-      ->set('lazysizes.plugins', array_filter($form_state->getValue('lazysizes_plugins')))
-      ->save();
+      ->set('lazysizes.lazyClass', $value['lazysizes_lazyClass'])
+      ->set('lazysizes.loadedClass', $value['lazysizes_loadedClass'])
+      ->set('lazysizes.loadingClass', $value['lazysizes_loadingClass'])
+      ->set('lazysizes.preloadClass', $value['lazysizes_preloadClass'])
+      ->set('lazysizes.errorClass', $value['lazysizes_errorClass'])
+      ->set('lazysizes.autosizesClass', $value['lazysizes_autosizesClass'])
+      ->set('lazysizes.srcAttr', $value['lazysizes_srcAttr'])
+      ->set('lazysizes.srcsetAttr', $value['lazysizes_srcsetAttr'])
+      ->set('lazysizes.sizesAttr', $value['lazysizes_sizesAttr'])
+      ->set('lazysizes.minSize', (int) $value['lazysizes_minSize'])
+      ->set('lazysizes.customMedia', JSON::decode($value['lazysizes_customMedia']))
+      ->set('lazysizes.init', (bool) $value['lazysizes_init'])
+      ->set('lazysizes.expFactor', (float) $value['lazysizes_expFactor'])
+      ->set('lazysizes.hFac', (float) $value['lazysizes_hFac'])
+      ->set('lazysizes.loadMode', (int) $value['lazysizes_loadMode'])
+      ->set('lazysizes.loadHidden', (bool) $value['lazysizes_loadHidden'])
+      ->set('lazysizes.ricTimeout', (int) $value['lazysizes_ricTimeout'])
+      ->set('lazysizes.throttleDelay', (int) $value['lazysizes_throttleDelay'])
+      ->set('lazysizes.plugins', array_filter($value['lazysizes_plugins']))
+      ->save(TRUE);
 
     parent::submitForm($form, $form_state);
   }

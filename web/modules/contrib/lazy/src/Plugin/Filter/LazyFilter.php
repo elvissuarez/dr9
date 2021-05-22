@@ -4,6 +4,7 @@ namespace Drupal\lazy\Plugin\Filter;
 
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\filter\FilterProcessResult;
 use Drupal\filter\Plugin\FilterBase;
@@ -16,8 +17,12 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * @Filter(
  *   id = "lazy_filter",
  *   title = @Translation("Lazy-load images and iframes"),
- *   description = @Translation("<a href=':url'>Configure options</a>", arguments = {":url" = "/admin/config/content/lazy"}),
+ *   description = @Translation("Only selected tags will be lazy-loaded in activated text-formats."),
  *   type = Drupal\filter\Plugin\FilterInterface::TYPE_TRANSFORM_REVERSIBLE,
+ *   settings = {
+ *     "image" = TRUE,
+ *     "iframe" = TRUE,
+ *   },
  *   weight = 20
  * )
  */
@@ -31,7 +36,7 @@ class LazyFilter extends FilterBase implements ContainerFactoryPluginInterface {
   protected $configFactory;
 
   /**
-   * Lazy-load service.
+   * The Lazy-load service.
    *
    * @var \Drupal\lazy\Lazy
    */
@@ -49,28 +54,16 @@ class LazyFilter extends FilterBase implements ContainerFactoryPluginInterface {
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The configuration factory.
    * @param \Drupal\lazy\Lazy $lazy_load
-   *   Lazy-load service.
+   *   The Lazy-load service.
    */
   public function __construct(array $configuration, $plugin_id, $plugin_definition, ConfigFactoryInterface $config_factory, Lazy $lazy_load) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->configFactory = $config_factory;
     $this->lazyLoad = $lazy_load;
-    parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
 
   /**
-   * Creates an instance of the plugin.
-   *
-   * @param \Symfony\Component\DependencyInjection\ContainerInterface $container
-   *   A new container instance to replace the current.
-   * @param array $configuration
-   *   A configuration array containing information about the plugin instance.
-   * @param string $plugin_id
-   *   The plugin_id for the plugin instance.
-   * @param mixed $plugin_definition
-   *   The plugin implementation definition.
-   *
-   * @return static
-   *   Returns an instance of this plugin.
+   * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return new static(
@@ -85,64 +78,114 @@ class LazyFilter extends FilterBase implements ContainerFactoryPluginInterface {
   /**
    * {@inheritdoc}
    */
+  public function settingsForm(array $form, FormStateInterface $form_state) {
+    $form['info'] = [
+      '#markup' => $this->t('Lazy-load filter can be enabled for images and iframes.'),
+    ];
+    $form['image'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Enable for images (%img tags)', ['%img' => '<img>']),
+      "#description" => $this->t('This option only applies to inline-images. If <em>Embed media</em> filter is enabled, the images embedded from media library would use the the selected view mode settings.'),
+      '#default_value' => $this->settings['image'],
+      '#return_value' => TRUE,
+    ];
+    $form['iframe'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Enable for iframes (%iframe tags)', ['%iframe' => '<iframe>']),
+      '#default_value' => $this->settings['iframe'],
+      '#return_value' => TRUE,
+    ];
+    return $form;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setConfiguration(array $configuration) {
+    parent::setConfiguration($configuration);
+
+    if (
+      $configuration['status']
+      && !empty($configuration['settings'])
+      && $configuration['settings']['image'] == FALSE
+      && $configuration['settings']['iframe'] == FALSE
+    ) {
+      $this->status = FALSE;
+      $this->messenger()->addWarning($this->t('Lazy-loading is not enabled. The filter configuration needs to be enabled for either of the IMG or IFRAME tags.'));
+    }
+
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function process($text, $langcode): FilterProcessResult {
-    $config = $this->configFactory->get('lazy.settings')->get();
-    $opt_skipClass = $config['skipClass'];
-    $opt_selector = $config['lazysizes']['lazyClass'];
-    $opt_tags = $config['alter_tag'];
-    $opt_src = ($config['lazysizes']['srcAttr'] !== 'src') ? $config['lazysizes']['srcAttr'] : 'data-filterlazy-src';
-
     $result = new FilterProcessResult($text);
-    $html_dom = Html::load($text);
 
-    $path_allowed = $this->lazyLoad->isPathAllowed($config['disabled_paths']);
+    if (
+      $this->status
+      && ($this->settings['image'] || $this->settings['iframe'])
+      && $this->lazyLoad->isPathAllowed()
+      && $lazy_settings = $this->configFactory->get('lazy.settings')->get()
+    ) {
+      $html_dom = Html::load($text);
+      $xpath = new \DOMXPath($html_dom);
 
-    if ($path_allowed) {
-      foreach ($opt_tags as $tag => $status) {
-        $matches = $html_dom->getElementsByTagName($tag);
-        foreach ($matches as $element) {
-          $classes = $element->getAttribute('class');
-          $classes = ($classes !== '') ? explode(' ', $classes) : [];
-          $parent_classes = $element->parentNode->getAttribute('class');
-          $parent_classes = ($parent_classes !== '') ? explode(' ', $parent_classes) : [];
-          if (empty($opt_tags[$tag])) {
-            // If the `tag` is not enabled remove the selector class
-            // used by JavaScript library (lazysizes).
-            if (($key = array_search($opt_selector, $classes, FALSE)) !== FALSE) {
-              unset($classes[$key]);
-              $element->setAttribute('class', implode(' ', $classes));
-              if (empty($classes)) {
-                $element->removeAttribute('class');
-              }
+      /** @var \DOMElement $node */
+      foreach ($xpath->query('//img | //iframe') as $node) {
+        $classes = empty($node->getAttribute('class')) ?
+          [] : explode(' ', $node->getAttribute('class'));
+        $parent_classes = empty($node->parentNode->getAttribute('class')) ?
+          [] : explode(' ', $node->parentNode->getAttribute('class'));
+
+        // Get original source value.
+        $src = $node->getAttribute('src');
+
+        // Check which tags are enabled in text-format settings.
+        $enabled_tags = [
+          'img' => $this->settings['image'],
+          'iframe' => $this->settings['iframe'],
+        ];
+        foreach ($enabled_tags as $tag => $status) {
+          // Act only on the elements that are enabled under "Lazy-load images
+          // and iframes" in filter settings.
+          if ($node->tagName === $tag && $enabled_tags[$node->tagName]) {
+            // Check if the element, or its parent has a skip class.
+            if (in_array($lazy_settings['skipClass'], $classes, TRUE) || in_array($lazy_settings['skipClass'], $parent_classes, TRUE)) {
+              // Leave this node unchanged.
+              continue;
             }
-          }
-          else {
-            // `tag` is enabled. Make sure skipClass is not set before
-            // proceeding.
-            if (!in_array($opt_skipClass, $classes, FALSE) && !in_array($opt_skipClass, $parent_classes, FALSE)) {
-              $classes[] = $opt_selector;
+
+            if ($lazy_settings['preferNative']) {
+              // Set required attribute `loading="lazy"`.
+              $node->setAttribute('loading', 'lazy');
+            }
+            else {
+              // Add Lazysizes selector class name to element attributes.
+              $classes[] = $lazy_settings['lazysizes']['lazyClass'];
               $classes = array_unique($classes);
-              $element->setAttribute('class', implode(' ', $classes));
+              $node->setAttribute('class', implode(' ', $classes));
 
-              $element->setAttribute('loading', 'lazy');
+              // Change source attribute from `src` to `data-src`, or whatever
+              // is defined in Lazysizes configuration for `srcAttr` at
+              // /admin/config/content/lazy.
+              $opt_src = ($lazy_settings['lazysizes']['srcAttr'] !== 'src') ? $lazy_settings['lazysizes']['srcAttr'] : 'data-filterlazy-src';
+              $node->removeAttribute('src');
+              $node->setAttribute($opt_src, $src);
 
-              $src = $element->getAttribute('src');
-              // If defined use placeholder image in `src` attribute.
-              // Remove otherwise.
-              if ($config['placeholderSrc']) {
-                $element->setAttribute('src', $config['placeholderSrc']);
+              // If the default placeholder defined, it would be used in `src`
+              // attribute.
+              if ($lazy_settings['placeholderSrc']) {
+                $node->setAttribute('src', $lazy_settings['placeholderSrc']);
               }
-              else {
-                $element->removeAttribute('src');
-              }
-
-              $element->setAttribute($opt_src, $src);
             }
           }
         }
       }
+
+      $result->setProcessedText(Html::serialize($html_dom));
     }
-    $result->setProcessedText(Html::serialize($html_dom));
 
     return $result;
   }
@@ -151,12 +194,16 @@ class LazyFilter extends FilterBase implements ContainerFactoryPluginInterface {
    * {@inheritdoc}
    */
   public function tips($long = FALSE) {
-    $settings = $this->configFactory->get('lazy.settings');
-    $tags = $settings->get('alter_tag');
-    $skip = $settings->get('skipClass');
-    $options = ['%img' => '<img>', '%iframe' => '<iframe>'];
-
-    $skip_help = $this->t('If you want certain elements skip lazy-loading, add <code>%class</code> class name.', ['%class' => $skip]);
+    $tags = [
+      'img' => $this->settings['image'],
+      'iframe' => $this->settings['iframe'],
+    ];
+    $options = [
+      '%img' => '<img>',
+      '%iframe' => '<iframe>',
+    ];
+    $skip_class = $this->configFactory->get('lazy.settings')->get('skipClass');
+    $skip_help = $this->t('If you want certain elements skip lazy-loading, add <code>%skip_class</code> class name.', ['%skip_class' => $skip_class]);
 
     if (!empty($tags)) {
       if ($tags['img'] && $tags['iframe']) {

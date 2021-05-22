@@ -1,15 +1,14 @@
-image_fields: {  }
-alter_tag:
-  img: img
-  iframe: 0
-formatters:
-  lazy_image: 0
-  lazy_responsive_image: 0
 skipClass: no-lazy
-disabled_paths: /rss.xml
+disable_admin: true
+visibility:
+  id: request_path
+  pages: /rss.xml
+  negate: 0
 placeholderSrc: ''
 preferNative: false
 cssEffect: false
+minified: true
+libraryPath: /libraries/lazysizes
 lazysizes:
   lazyClass: lazyload
   loadedClass: lazyloaded

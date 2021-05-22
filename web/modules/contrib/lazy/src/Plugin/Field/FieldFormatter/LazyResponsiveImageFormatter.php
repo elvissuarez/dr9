@@ -21,16 +21,6 @@ class LazyResponsiveImageFormatter extends ResponsiveImageFormatter {
   /**
    * {@inheritdoc}
    */
-  public function settingsSummary() {
-    $summary = parent::settingsSummary();
-    $summary[] = $this->t('Lazy-loading enabled');
-
-    return $summary;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function viewElements(FieldItemListInterface $items, $langcode) {
     $elements = parent::viewElements($items, $langcode);
 
@@ -39,6 +29,16 @@ class LazyResponsiveImageFormatter extends ResponsiveImageFormatter {
     }
 
     return $elements;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function calculateDependencies() {
+    $dependencies = parent::calculateDependencies();
+    $dependencies['module'][] = 'responsive_image';
+    $dependencies['config'][] = 'lazy.settings';
+    return $dependencies;
   }
 
 }

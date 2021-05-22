@@ -17,7 +17,7 @@ lazy:
 lazysizes:
   header: true
   remote: https://github.com/aFarkas/lazysizes
-  version: 5.2.0
+  version: 5.3.1
   license:
     name: MIT
     url: https://github.com/aFarkas/lazysizes/blob/master/LICENSE

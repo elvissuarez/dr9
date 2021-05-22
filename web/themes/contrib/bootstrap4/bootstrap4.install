@@ -72,3 +72,13 @@ function bootstrap4_update_8102() {
     ->set('subtheme_machine_name', '')
     ->save(TRUE);
 }
+
+/**
+ * Adding Website container type configuration to configuration.
+ */
+function bootstrap4_update_8103() {
+  \Drupal::configFactory()
+    ->getEditable('bootstrap4.settings')
+    ->set('b4_top_container_config', '')
+    ->save(TRUE);
+}

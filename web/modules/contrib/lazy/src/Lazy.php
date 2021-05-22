@@ -2,44 +2,24 @@
 
 namespace Drupal\lazy;
 
+use Drupal\Core\Condition\ConditionManager;
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\path_alias\AliasManagerInterface;
-use Drupal\Core\Path\CurrentPathStack;
-use Drupal\Core\Path\PathMatcherInterface;
+use Drupal\Core\Routing\AdminContext;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
- * Class Lazy.
+ * Lazy-load service.
+ *
+ * Enables lazy-loading.
  */
 class Lazy implements LazyInterface {
 
   /**
    * A config object for the module configuration.
    *
-   * @var \Drupal\Core\Config\Config
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
    */
-  protected $config;
-
-  /**
-   * Represents the current path for the current request.
-   *
-   * @var \Drupal\Core\Path\CurrentPathStack
-   */
-  protected $pathCurrent;
-
-  /**
-   * The path alias manager.
-   *
-   * @var \Drupal\path_alias\AliasManagerInterface
-   */
-  protected $pathAliasManager;
-
-  /**
-   * The path matcher service.
-   *
-   * @var \Drupal\Core\Path\PathMatcherInterface
-   */
-  protected $pathMatcher;
+  protected $lazySettings;
 
   /**
    * The request stack.
@@ -49,25 +29,48 @@ class Lazy implements LazyInterface {
   protected $requestStack;
 
   /**
+   * The condition plugin manager.
+   *
+   * @var \Drupal\Core\Condition\ConditionManager
+   */
+  protected $conditionManager;
+
+  /**
+   * The route admin context to determine whether a route is an admin one.
+   *
+   * @var \Drupal\Core\Routing\AdminContext
+   */
+  protected $adminContext;
+
+  /**
    * Lazy constructor.
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The configuration factory.
-   * @param \Drupal\Core\Path\CurrentPathStack $current_path
-   *   The current path stack.
-   * @param \Drupal\path_alias\AliasManagerInterface $alias_manager
-   *   The path alias manager.
-   * @param \Drupal\Core\Path\PathMatcherInterface $path_matcher
-   *   The path matcher service.
    * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
    *   The request stack.
+   * @param \Drupal\Core\Condition\ConditionManager $condition_manager
+   *   The condition plugins manager.
+   * @param \Drupal\Core\Routing\AdminContext $admin_context
+   *   The route admin context service.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, CurrentPathStack $current_path, AliasManagerInterface $alias_manager, PathMatcherInterface $path_matcher, RequestStack $request_stack) {
-    $this->config = $config_factory->get('lazy.settings')->get();
-    $this->pathCurrent = $current_path;
-    $this->pathAliasManager = $alias_manager;
-    $this->pathMatcher = $path_matcher;
-    $this->requestStack = $request_stack;
+  public function __construct(
+    ConfigFactoryInterface $config_factory,
+    RequestStack $request_stack,
+    ConditionManager $condition_manager,
+    AdminContext $admin_context
+  ) {
+    $this->lazySettings = $config_factory->get('lazy.settings')->get();
+    $this->requestStack = $request_stack->getCurrentRequest();
+    $this->conditionManager = $condition_manager;
+    $this->adminContext = $admin_context;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getSettings(): array {
+    return $this->lazySettings ?? [];
   }
 
   /**
@@ -104,76 +107,59 @@ class Lazy implements LazyInterface {
   /**
    * {@inheritdoc}
    */
-  public function isEnabled() {
-    $status = [];
-
-    if ($filters = $this->isFiltersEnabled()) {
-      $status = array_merge($status, $filters);
-    }
-
-    if ($fields = $this->isFieldsEnabled($this->config['image_fields'])) {
-      $status = array_merge($status, $fields);
-    }
-
-    $this->config['status'] = $status;
-
-    return count($status) ? $this->config : FALSE;
+  public function isEnabled(array $attributes = []): bool {
+    return $this->isPathAllowed() && $this->isNotSkipping($attributes);
   }
 
   /**
    * {@inheritdoc}
    */
-  public function isFieldsEnabled(array $image_fields) {
-    $status = [];
-
-    $image_fields = is_array($image_fields) ? $image_fields : [];
-
-    foreach ($image_fields as $tag => $option) {
-      if ($image_fields[$tag]) {
-        $status[$tag] = (bool) $option;
-      }
-    }
-
-    return count($status) ? $status : FALSE;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function isFiltersEnabled() {
-    $status = [];
-
-    foreach (filter_formats() as $filter) {
-      if (
-        $filter->status()
-        && isset($filter->getDependencies()['module'])
-        && in_array('lazy', $filter->getDependencies()['module'], TRUE)
-      ) {
-        $status[$filter->id()] = TRUE;
-      }
-    }
-
-    return count($status) ? $status : FALSE;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function isPathAllowed($disabled_paths): bool {
-    $request = $this->requestStack->getCurrentRequest();
-
+  public function isPathAllowed(): bool {
     // Disable lazy-loading for all AMP pages.
-    if ($request->query->has('amp')) {
+    if ($this->requestStack->query->has('amp')) {
       return FALSE;
     }
 
-    $current_path = $request->getPathInfo();
+    $settings = $this->getSettings();
 
-    $current_path_matcher = $this->pathMatcher->matchPath($current_path, $disabled_paths);
-    $path_alias = $this->pathAliasManager->getAliasByPath($current_path);
-    $path_alias_matcher = $this->pathMatcher->matchPath($path_alias, $disabled_paths);
+    // Disable lazy-loading on all administrative pages.
+    $disable_admin = !isset($settings['disable_admin']) || (bool) $settings['disable_admin'];
+    if ($disable_admin && $this->adminContext->isAdminRoute()) {
+      return FALSE;
+    }
 
-    return !($current_path_matcher || $path_alias_matcher);
+    /** @var \Drupal\system\Plugin\Condition\RequestPath $condition */
+    $condition = $this->conditionManager->createInstance('request_path');
+    if (is_null($condition)) {
+      return FALSE;
+    }
+
+    $visibility = $settings['visibility'] ?? [
+      'id' => 'request_path',
+      'pages' => $settings['disabled_paths'] ?? '/rss.xml',
+      'negate' => 0,
+    ];
+    $condition->setConfiguration($visibility);
+    if ($condition->isNegated()) {
+      return $condition->evaluate();
+    }
+    return !$condition->evaluate();
+  }
+
+  /**
+   * Skip lazy-loading?
+   *
+   * Returns true if the image does not have the skip class name.
+   *
+   * @param array $attributes
+   *   Element attributes array. i.e. `$variables['attributes']`.
+   *
+   * @return bool
+   *   Returns true if the element is NOT skipped.
+   */
+  private function isNotSkipping(array $attributes = []): bool {
+    $classes = $attributes['class'] ?? [];
+    return !in_array($this->lazySettings['skipClass'], $classes, TRUE);
   }
 
 }

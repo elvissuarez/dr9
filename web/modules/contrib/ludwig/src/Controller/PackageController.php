@@ -139,6 +139,11 @@ class PackageController implements ContainerInjectionInterface {
           '@read_more' => Link::fromTextAndUrl($this->t('Read more'), Url::fromUri($guide_link))->toString(),
         ]);
       }
+      elseif ($package['resource'] == 'inactive' && empty($package['disable_warnings'])) {
+        $package['description'] .= $this->t('<br><strong>Notice! The INACTIVE library. @read_more.</strong>', [
+          '@read_more' => Link::fromTextAndUrl($this->t('Read more'), Url::fromUri($guide_link))->toString(),
+        ]);
+      }
       elseif (($package['resource'] == 'legacy' || $package['resource'] == 'unknown') && empty($package['disable_warnings'])) {
         $package['description'] .= $this->t('<br><strong>Warning! The @resource library type. Not supported by Ludwig. @read_more.</strong>', [
           '@resource' => strtoupper($package['resource']),
